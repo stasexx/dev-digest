@@ -11,6 +11,7 @@ so the next agent/session doesn't relearn it. Append-only — see the
 ## What Doesn't Work
 
 - **2026-06-17** — The PR-list `tableCard` has `overflow: "hidden"` (`pulls/styles.ts`) which CLIPS absolutely-positioned hover popovers (`FindingsHoverCard`) opening downward from the bottom rows; upper rows render fine (matching the design). `FindingsHoverCard` is dependency-free (anchor wrapper + `position:absolute` panel) — to fully escape the card it would need a portal + `position:fixed` from the anchor's `getBoundingClientRect`. Deferred; not needed for the common case. Evidence: `client/src/components/FindingsHoverCard/`, `pulls/styles.ts:97`.
+- **2026-09-20** — Prefilling a form from a query in `useEffect([data])` clobbers the user's edits whenever the query refetches (window focus) or a test mock returns a fresh object each render. Prefill once behind a ref flag. Evidence: `client/src/app/repos/[repoId]/conventions/_components/CreateSkillModal/CreateSkillModal.tsx` (`prefilled`).
 
 ## Codebase Patterns
 
@@ -23,6 +24,7 @@ so the next agent/session doesn't relearn it. Append-only — see the
 - **2026-06-14** — Cross-route shared components live in `src/components/<Name>/` with an `index.ts` barrel, imported via `@/components/<Name>` (e.g. `RunCostBadge`, `diff-viewer`). Vendored UI primitives (`Badge`, `CircularScore`) live in `src/vendor/ui` under `@devdigest/ui` — different home. Evidence: `client/src/components/RunCostBadge/`.
 - **2026-06-14** — The PR-list table is driven by two parallel constants that MUST stay length-aligned: `COLUMN_KEYS` (header keys + order) and `GRID` (CSS grid-template tracks). Adding a column = add to both AND render a matching cell in `PRRow.tsx`, else header/cells misalign silently. Evidence: `client/src/app/repos/[repoId]/pulls/constants.ts`.
 - **2026-06-14** — i18n has only the `en` locale (`client/messages/en/`); new UI strings need a key under the right namespace file (e.g. `prReview.json`, `runs.json`) read via `useTranslations("<ns>")`. A missing key renders the raw key, not an error.
+- **2026-09-20** — Sidebar lives in `src/vendor/ui/nav.ts`; items support `:repoId` templating and the active key for `/conventions` was already mapped in `components/app-shell/helpers.ts`. `ConfidenceNum` renders `"87% conf"` (not `87%`) — match that in tests. `githubBlobUrl(full_name, ref, file, line)` accepts a branch name as `ref` when there is no sha.
 
 ## Tool & Library Notes
 
@@ -33,5 +35,7 @@ so the next agent/session doesn't relearn it. Append-only — see the
 ### 2026-06-18
 - Built Skills UI (L02): `lib/hooks/skills.ts`, `/skills` page + SkillsListView + SkillCard + ImportDrawer, `/skills/[id]` + SkillEditor with Config/Preview/Versions/Stats tabs, AgentEditor SkillsTab (HTML5 DnD reorder, checkbox link/unlink), nav SKILLS LAB section, i18n keys.
 - Skills tab added to AgentEditor — both `constants.ts` (TABS) and `page.tsx` (VALID_TABS) updated.
+### 2026-09-20 (HW-2)
+- Conventions page (`/repos/:repoId/conventions`): Run Scan / ReScan, candidate cards with GitHub evidence links, Accept/Reject/inline Edit, Create-skill modal with editable body. Agents moved to SKILLS LAB. Skills list: side preview drawer, create modal, delete confirmation modal, version + agent count. Trace shows `~N tokens` for the skills block only.
 
 ## Open Questions
