@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { Button, Icon, Modal } from "@devdigest/ui";
 import { s } from "../../styles";
 import { PromptModalBody } from "../PromptModalBody";
+import { estimateTokens } from "@/lib/tokens";
 
 const miniBtnStyle: React.CSSProperties = {
   display: "inline-flex",
@@ -20,7 +21,18 @@ const miniBtnStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
-export function PromptBlock({ label, text, color }: { label: string; text: string; color: string }) {
+export function PromptBlock({
+  label,
+  text,
+  color,
+  showTokens,
+}: {
+  label: string;
+  text: string;
+  color: string;
+  /** Show how many tokens THIS block weighs (estimate over its own text only). */
+  showTokens?: boolean;
+}) {
   const t = useTranslations("runs");
   const [open, setOpen] = React.useState(false);
   const [full, setFull] = React.useState(false);
@@ -35,6 +47,11 @@ export function PromptBlock({ label, text, color }: { label: string; text: strin
       <div onClick={() => setOpen((o) => !o)} style={s.promptHead}>
         <span style={s.promptDot(color)} />
         <span style={s.promptLabel}>{label}</span>
+        {showTokens && (
+          <span className="mono tnum" style={{ fontSize: 11, color: "var(--text-muted)" }} data-testid="prompt-block-tokens">
+            {t("trace.prompt.blockTokens", { count: estimateTokens(text || "") })}
+          </span>
+        )}
         <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
           <button
             type="button"

@@ -4,6 +4,7 @@ import { FormField, TextInput, SelectInput, Textarea, Toggle, Button } from "@de
 import type { Skill, SkillType } from "@devdigest/shared";
 import { useUpdateSkill } from "../../../../../../../lib/hooks/skills";
 import { useToast } from "../../../../../../../lib/toast";
+import { estimateTokens } from "@/lib/tokens";
 
 const TYPE_OPTIONS = [
   { value: "rubric", label: "Rubric" },
@@ -11,10 +12,6 @@ const TYPE_OPTIONS = [
   { value: "security", label: "Security" },
   { value: "custom", label: "Custom" },
 ];
-
-function estimateTokens(text: string) {
-  return Math.round(text.length / 4);
-}
 
 export function ConfigTab({ skill }: { skill: Skill }) {
   const toast = useToast();
