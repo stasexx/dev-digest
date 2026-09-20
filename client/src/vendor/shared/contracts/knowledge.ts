@@ -176,8 +176,58 @@ export const ConventionCandidate = z.object({
   evidence_snippet: z.string(),
   confidence: z.number().min(0).max(1),
   accepted: z.boolean(),
+  category: z.string(),
+  /** 1-based line in `evidence_path` the rule was observed on (code-verified). */
+  evidence_line: z.number().int().positive().nullable(),
+  status: z.enum(['pending', 'accepted', 'rejected']),
 });
 export type ConventionCandidate = z.infer<typeof ConventionCandidate>;
+
+export const ConventionStatus = z.enum(['pending', 'accepted', 'rejected']);
+export type ConventionStatus = z.infer<typeof ConventionStatus>;
+
+/** What the LLM must return for a conventions scan (structured output). */
+export const ConventionExtraction = z.object({
+  candidates: z.array(
+    z.object({
+      category: z.string(),
+      rule: z.string(),
+      evidence: z.object({ file: z.string(), line: z.number().int() }),
+      confidence: z.number().min(0).max(1),
+    }),
+  ),
+});
+export type ConventionExtraction = z.infer<typeof ConventionExtraction>;
+
+/** Result of `POST /repos/:id/conventions/extract`. */
+export const ConventionScanResult = z.object({
+  candidates: z.array(ConventionCandidate),
+  /** Files sent to the model (configs + top-ranked sources). */
+  sampled_files: z.array(z.string()),
+  proposed: z.number().int(),
+  /** Dropped by the code-level evidence check (file/line not found). */
+  dropped_unverified: z.number().int(),
+  /** Dropped because the rule was already reviewed (accepted/rejected) earlier. */
+  dropped_known: z.number().int(),
+  model: z.string(),
+});
+export type ConventionScanResult = z.infer<typeof ConventionScanResult>;
+
+export const ConventionUpdateInput = z.object({
+  status: ConventionStatus.optional(),
+  rule: z.string().min(1).optional(),
+  category: z.string().min(1).optional(),
+});
+export type ConventionUpdateInput = z.infer<typeof ConventionUpdateInput>;
+
+export const ConventionsToSkillInput = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  /** Edited markdown body; when omitted the server builds it from accepted candidates. */
+  body: z.string().optional(),
+  agent_id: z.string().optional(),
+});
+export type ConventionsToSkillInput = z.infer<typeof ConventionsToSkillInput>;
 
 // ---- Agents ----
 export const Provider = z.enum(['openai', 'anthropic', 'openrouter']);
