@@ -21,6 +21,7 @@ export function Chip({
   return (
     <button
       onClick={onClick}
+      aria-pressed={active}
       onMouseEnter={() => setH(true)}
       onMouseLeave={() => setH(false)}
       style={{

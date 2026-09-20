@@ -5,7 +5,7 @@
  * and shows the review score ring.
  */
 import { describe, it, expect, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { RunSummary } from "@devdigest/shared";
 import messages from "../../../../../../../../messages/en/prReview.json";
@@ -84,5 +84,29 @@ describe("RunHistory — outcome badge", () => {
     renderRuns([run({ status: "done", tokens_in: 0, tokens_out: 0, cost_usd: null, score: 80 })]);
     expect(screen.getByText("—")).toBeInTheDocument();
     expect(screen.queryByText(/\$0\.00/)).not.toBeInTheDocument();
+  });
+});
+
+describe("RunHistory — severity icons", () => {
+  it("shows a non-interactive icon + count for each severity the run found", () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={{ prReview: messages }}>
+        <RunHistory
+          runs={[run({ findings_count: 4, blockers: 1, score: 40 })]}
+          severityByRun={{ "run-1": { CRITICAL: 1, WARNING: 3, SUGGESTION: 0 } }}
+          onOpenTrace={() => {}}
+        />
+      </NextIntlClientProvider>,
+    );
+    const group = screen.getByTestId("run-severity-run-1");
+    expect(within(group).getByText("1")).toBeInTheDocument();
+    expect(within(group).getByText("3")).toBeInTheDocument();
+    expect(within(group).queryByText("0")).not.toBeInTheDocument();
+    expect(within(group).queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("renders nothing extra when the run has no severity data", () => {
+    renderRuns([run({ findings_count: 0, blockers: 0, score: 95 })]);
+    expect(screen.queryByTestId("run-severity-run-1")).not.toBeInTheDocument();
   });
 });
