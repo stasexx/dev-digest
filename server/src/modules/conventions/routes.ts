@@ -10,6 +10,7 @@ import { ConventionsService } from './service.js';
  *   POST  /repos/:id/conventions/extract → run a scan (samples → model → evidence check → persist)
  *   GET   /repos/:id/conventions         → persisted candidates (rejected ones are hidden)
  *   PATCH /conventions/:id               → accept / reject / edit one candidate
+ *   GET   /repos/:id/conventions/skill-draft → name/description/body prefill for the modal
  *   POST  /repos/:id/conventions/skill   → accepted candidates → skill (+ optional agent link)
  */
 export default async function conventionsRoutes(appBase: FastifyInstance) {
@@ -24,6 +25,11 @@ export default async function conventionsRoutes(appBase: FastifyInstance) {
   app.get('/repos/:id/conventions', { schema: { params: IdParams } }, async (req) => {
     const { workspaceId } = await getContext(app.container, req);
     return service.list(workspaceId, req.params.id);
+  });
+
+  app.get('/repos/:id/conventions/skill-draft', { schema: { params: IdParams } }, async (req) => {
+    const { workspaceId } = await getContext(app.container, req);
+    return service.skillDraft(workspaceId, req.params.id);
   });
 
   app.patch(

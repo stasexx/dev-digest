@@ -28,6 +28,11 @@ Rules:
 - "confidence" (0..1) reflects how consistently the samples follow the rule.
 - Return at most ${MAX_CANDIDATES} candidates, most consistent first. Prefer project-specific rules over language defaults.`;
 
+/** Skill descriptions are the skill's interface — keep them directive. */
+function defaultDescription(repoFullName: string, count: number): string {
+  return `Apply when reviewing ${repoFullName}: enforce the ${count} house conventions extracted from the codebase and approved by a maintainer.`;
+}
+
 function buildUserPrompt(repoFullName: string, samples: ConventionSample[]): string {
   const files = samples
     .map((s) => `### FILE: ${s.path} (${s.kind})\n${s.numbered}`)
@@ -137,6 +142,23 @@ export class ConventionsService {
     return toConventionDto(row);
   }
 
+  /** Prefill for the "Create skill" modal: what the skill would look like right now. */
+  async skillDraft(
+    workspaceId: string,
+    repoId: string,
+  ): Promise<{ name: string; description: string; body: string; accepted: number }> {
+    const repo = await this.requireRepo(workspaceId, repoId);
+    const accepted = (await this.repo.listForRepo(workspaceId, repoId))
+      .filter((r) => r.status === 'accepted')
+      .map(toConventionDto);
+    return {
+      name: REPO_CONVENTIONS_SKILL,
+      description: defaultDescription(repo.fullName, accepted.length),
+      body: buildSkillBody(repo.fullName, accepted),
+      accepted: accepted.length,
+    };
+  }
+
   /**
    * Accepted candidates → one skill (default `repo-conventions`). Re-running updates
    * the same skill (new version) instead of piling up duplicates. Only accepted
@@ -155,9 +177,7 @@ export class ConventionsService {
 
     const name = input.name.trim() || REPO_CONVENTIONS_SKILL;
     const body = input.body?.trim() ? input.body : buildSkillBody(repo.fullName, accepted);
-    const description =
-      input.description?.trim() ||
-      `Apply when reviewing ${repo.fullName}: enforce the ${accepted.length} house conventions extracted from the codebase.`;
+    const description = input.description?.trim() || defaultDescription(repo.fullName, accepted.length);
     const evidenceFiles = [...new Set(accepted.map((c) => c.evidence_path).filter(Boolean))];
 
     const skillsRepo = this.container.skillsRepo;

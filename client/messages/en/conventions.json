@@ -6,7 +6,7 @@
     "repoFallback": "repo",
     "subtitle": "Scan the cloned repo to surface house-rules — each backed by evidence you can turn into a Skill.",
     "scanning": "Scanning…",
-    "rescan": "Re-scan",
+    "rescan": "ReScan",
     "runExtraction": "Run extraction",
     "extractionFailed": "Extraction failed",
     "loadError": "Could not load conventions.",
@@ -15,12 +15,37 @@
       "body": "Scan the repo to surface house-rules — naming, error handling, structure — each backed by evidence you can turn into a Skill.",
       "cta": "Run extraction"
     },
-    "candidateCount": "{count, plural, one {# candidate} other {# candidates}} · grounded against sampled files"
+    "candidateCount": "{count, plural, one {# candidate} other {# candidates}} · grounded against sampled files",
+    "runScan": "Run Scan",
+    "createSkill": "Create skill ({count})",
+    "scanSummary": "Last scan · {model} · {files} files sampled · {proposed} proposed · {unverified} dropped (evidence not found in code) · {known} already reviewed"
   },
   "card": {
     "confidence": "Confidence",
     "accepted": "Accepted",
     "accepting": "Accepting…",
-    "acceptAsSkill": "Accept as Skill"
+    "acceptAsSkill": "Accept as Skill",
+    "accept": "Accept",
+    "reject": "Reject",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "ruleLabel": "Rule",
+    "categoryLabel": "Category"
+  },
+  "modal": {
+    "title": "Create skill from conventions",
+    "subtitle": "Builds one skill from the {count, plural, one {# accepted convention} other {# accepted conventions}}. Rejected and un-reviewed candidates are never included.",
+    "name": "Name",
+    "description": "Description",
+    "descriptionHint": "The description is the skill's interface — write it as a directive (\"Apply when…\").",
+    "body": "Skill body (markdown)",
+    "bodyHint": "Prefilled from the accepted conventions — edit freely before saving.",
+    "agent": "Link to agent",
+    "agentHint": "Appended after the agent's current skills; change the order later in the agent's Skills tab.",
+    "noAgent": "Don't link yet",
+    "cancel": "Cancel",
+    "create": "Create",
+    "failed": "Could not create the skill."
   }
 }
