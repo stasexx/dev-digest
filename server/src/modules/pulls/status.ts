@@ -1,4 +1,4 @@
-import type { PrStatus } from '@devdigest/shared';
+import type { PrFindingsSummary, PrStatus, Severity } from '@devdigest/shared';
 
 /**
  * PR-list rollup helpers (pure — no DB / `this`, so they unit-test cleanly).
@@ -28,6 +28,55 @@ export function rollupSeverities(rows: { severity: string }[]): SeverityCounts {
     else if (r.severity === 'SUGGESTION') c.suggestion += 1;
   }
   return c;
+}
+
+/** Previews carried per PR on the list — enough for the popover, bounded for payload size. */
+export const FINDING_PREVIEW_LIMIT = 8;
+/** Popover shows a short description, not the full rationale. */
+export const PREVIEW_RATIONALE_MAX = 180;
+
+const SEVERITY_RANK: Record<string, number> = { CRITICAL: 0, WARNING: 1, SUGGESTION: 2 };
+
+export interface FindingSummaryRow {
+  id: string;
+  severity: string;
+  category: string;
+  title: string;
+  file: string;
+  startLine: number;
+  confidence: number;
+  rationale: string;
+}
+
+/**
+ * PR-list findings summary for ONE review: severity counts over every finding,
+ * plus the most severe / most confident few as read-only previews.
+ */
+export function summarizeFindings(rows: FindingSummaryRow[]): PrFindingsSummary {
+  // Unknown severities are ignored everywhere so total always equals the sum of the buckets.
+  const known = rows.filter((r) => r.severity in SEVERITY_RANK);
+  const counts = rollupSeverities(known);
+  const previews = [...known]
+    .sort(
+      (a, b) =>
+        (SEVERITY_RANK[a.severity] ?? 9) - (SEVERITY_RANK[b.severity] ?? 9) ||
+        b.confidence - a.confidence,
+    )
+    .slice(0, FINDING_PREVIEW_LIMIT)
+    .map((r) => ({
+      id: r.id,
+      severity: r.severity as Severity,
+      category: r.category,
+      title: r.title,
+      file: r.file,
+      start_line: r.startLine,
+      confidence: r.confidence,
+      rationale:
+        r.rationale.length > PREVIEW_RATIONALE_MAX
+          ? `${r.rationale.slice(0, PREVIEW_RATIONALE_MAX - 1).trimEnd()}…`
+          : r.rationale,
+    }));
+  return { total: known.length, ...counts, previews };
 }
 
 /**

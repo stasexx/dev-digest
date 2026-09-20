@@ -98,6 +98,7 @@
       "author": "Author",
       "size": "Size",
       "score": "Score",
+      "findings": "Findings",
       "status": "Status",
       "cost": "Cost",
       "updated": "Updated"
@@ -107,7 +108,13 @@
     "errorBody": "The engine returned an error.",
     "emptyTitle": "No pull requests",
     "emptyAllBody": "No open PRs found for this repo yet. Refresh to sync from GitHub.",
-    "emptyStatusBody": "No PRs with status “{status}”."
+    "emptyStatusBody": "No PRs with status “{status}”.",
+    "findings": {
+      "none": "0",
+      "cellLabel": "{count} findings in the latest review",
+      "popoverTitle": "{count} findings in this run",
+      "more": "+{count} more on the pull request page"
+    }
   },
   "timeline": {
     "goToReview": "Jump to this run’s findings below",

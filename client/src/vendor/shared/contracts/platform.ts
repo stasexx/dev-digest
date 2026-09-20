@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { Provider } from './knowledge.js';
+import { Severity } from './findings.js';
 
 /**
  * Platform / scaffolding DTOs owned by F1:
@@ -154,6 +155,29 @@ export type Repo = z.infer<typeof Repo>;
 export const PrStatus = z.enum(['needs_review', 'reviewed', 'stale', 'open', 'closed', 'merged']);
 export type PrStatus = z.infer<typeof PrStatus>;
 
+/** Read-only preview of one finding, shown in the PR-list findings popover. */
+export const PrFindingPreview = z.object({
+  id: z.string(),
+  severity: Severity,
+  category: z.string(),
+  title: z.string(),
+  file: z.string(),
+  start_line: z.number().int(),
+  confidence: z.number(),
+  rationale: z.string(),
+});
+export type PrFindingPreview = z.infer<typeof PrFindingPreview>;
+
+/** Latest review's findings for one PR: per-severity counts + previews. */
+export const PrFindingsSummary = z.object({
+  total: z.number().int(),
+  critical: z.number().int(),
+  warning: z.number().int(),
+  suggestion: z.number().int(),
+  previews: z.array(PrFindingPreview),
+});
+export type PrFindingsSummary = z.infer<typeof PrFindingsSummary>;
+
 export const PrMeta = z.object({
   id: z.string().nullish(),
   number: z.number().int(),
@@ -173,6 +197,9 @@ export const PrMeta = z.object({
   // Cost (USD) of the latest review batch (list endpoint only). null/absent
   // when the PR has no priced run yet; UI shows "—", not "$0".
   cost_usd: z.number().nullish(),
+  // Latest review's findings (list endpoint only). null/absent until reviewed.
+  // A plain group-by of persisted findings — never an LLM call.
+  findings: PrFindingsSummary.nullish(),
 });
 export type PrMeta = z.infer<typeof PrMeta>;
 
