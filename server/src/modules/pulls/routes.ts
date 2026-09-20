@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
+import { z } from 'zod';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { PrMeta, PrDetail, GitHubClient, PrReviewComment } from '@devdigest/shared';
 import { PrCommentInput } from '@devdigest/shared';
@@ -23,7 +24,12 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
   const app = appBase.withTypeProvider<ZodTypeProvider>();
   const { container } = app;
 
-  app.get('/repos/:id/pulls', { schema: { params: IdParams } }, async (req): Promise<PrMeta[]> => {
+  const ListQuery = z.object({ status: z.enum(['open', 'merged', 'closed']) });
+
+  app.get(
+    '/repos/:id/pulls',
+    { schema: { params: IdParams, querystring: ListQuery } },
+    async (req): Promise<PrMeta[]> => {
     const { workspaceId } = await getContext(container, req);
     const [repo] = await container.db
       .select()
@@ -57,7 +63,7 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
               headSha: pr.head_sha,
               additions: pr.additions,
               deletions: pr.deletions,
-              filesCount: pr.files_count,
+              filesCount: pr.changed_files,
               status: pr.status,
               openedAt: pr.opened_at ? new Date(pr.opened_at) : null,
               updatedAt: pr.updated_at ? new Date(pr.updated_at) : null,
@@ -80,7 +86,7 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
     const rows = await container.db
       .select()
       .from(t.pullRequests)
-      .where(eq(t.pullRequests.repoId, repo.id));
+      .where(and(eq(t.pullRequests.repoId, repo.id), eq(t.pullRequests.status, req.query.status)));
 
     // Diff stats aren't on GitHub's PR-list payload, so freshly-imported PRs
     // land with zeroed size/diff. Backfill them once from the detail endpoint
@@ -99,12 +105,12 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
             .set({
               additions: detail.additions,
               deletions: detail.deletions,
-              filesCount: detail.files_count,
+              filesCount: detail.changed_files,
             })
             .where(eq(t.pullRequests.id, r.id));
           r.additions = detail.additions;
           r.deletions = detail.deletions;
-          r.filesCount = detail.files_count;
+          r.filesCount = detail.changed_files;
         } catch (err) {
           app.log.warn({ err, number: r.number }, 'PR diff-stat backfill skipped');
         }
@@ -142,7 +148,7 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
         head_sha: r.headSha,
         additions: r.additions,
         deletions: r.deletions,
-        files_count: r.filesCount,
+        changed_files: r.filesCount,
         status: deriveReviewStatus({
           ghStatus: r.status,
           lastReviewedSha: r.lastReviewedSha,
@@ -155,7 +161,8 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
         score: review ? review.score : null,
       };
     });
-  });
+    },
+  );
 
   app.get('/pulls/:id', { schema: { params: IdParams } }, async (req): Promise<PrDetail> => {
     const { workspaceId } = await getContext(container, req);
@@ -211,7 +218,7 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
           // the detail fetch so the Pull Requests list shows real size/files.
           additions: detail.additions,
           deletions: detail.deletions,
-          filesCount: detail.files_count,
+          filesCount: detail.changed_files,
         })
         .where(eq(t.pullRequests.id, pr.id));
 
@@ -230,7 +237,7 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
         head_sha: pr.headSha,
         additions: pr.additions,
         deletions: pr.deletions,
-        files_count: pr.filesCount,
+        changed_files: pr.filesCount,
         status: pr.status as PrDetail['status'],
         opened_at: pr.openedAt?.toISOString() ?? null,
         updated_at: pr.updatedAt?.toISOString() ?? null,

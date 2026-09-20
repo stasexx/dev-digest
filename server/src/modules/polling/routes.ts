@@ -42,7 +42,7 @@ export default async function pollingRoutes(appBase: FastifyInstance) {
           headSha: pr.head_sha,
           additions: pr.additions,
           deletions: pr.deletions,
-          filesCount: pr.files_count,
+          filesCount: pr.changed_files,
           status: pr.status,
           updatedAt: pr.updated_at ? new Date(pr.updated_at) : null,
         })

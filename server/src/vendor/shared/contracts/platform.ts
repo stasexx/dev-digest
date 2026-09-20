@@ -164,7 +164,7 @@ export const PrMeta = z.object({
   head_sha: z.string(),
   additions: z.number().int(),
   deletions: z.number().int(),
-  files_count: z.number().int(),
+  changed_files: z.number().int(),
   status: PrStatus,
   opened_at: z.string().nullish(),
   updated_at: z.string().nullish(),

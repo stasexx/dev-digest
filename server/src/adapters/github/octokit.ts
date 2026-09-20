@@ -56,7 +56,7 @@ export class OctokitGitHubClient implements GitHubClient {
             head_sha: pr.head.sha,
             additions: 0,
             deletions: 0,
-            files_count: 0, // not present on the list payload; populated by getPullRequest
+            changed_files: 0, // not present on the list payload; populated by getPullRequest
             status: mapStatus(pr.state, Boolean(pr.merged_at)) as PrStatus,
             opened_at: pr.created_at,
             updated_at: pr.updated_at,
@@ -98,7 +98,7 @@ export class OctokitGitHubClient implements GitHubClient {
             head_sha: pr.head.sha,
             additions: pr.additions,
             deletions: pr.deletions,
-            files_count: pr.changed_files,
+            changed_files: pr.changed_files,
             status: mapStatus(pr.state, Boolean(pr.merged_at)) as PrStatus,
             opened_at: pr.created_at,
             updated_at: pr.updated_at,

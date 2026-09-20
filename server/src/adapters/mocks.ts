@@ -147,7 +147,7 @@ export class MockGitHubClient implements GitHubClient {
           head_sha: 'a1b2c3d4',
           additions: 247,
           deletions: 38,
-          files_count: 9,
+          changed_files: 9,
           status: 'open',
           opened_at: '2026-06-01T00:00:00Z',
           updated_at: '2026-06-01T03:00:00Z',
@@ -166,7 +166,7 @@ export class MockGitHubClient implements GitHubClient {
       head_sha: 'a1b2c3d4',
       additions: 247,
       deletions: 38,
-      files_count: 9,
+      changed_files: 9,
       status: 'open',
       body: 'Add rate limiting. Closes #471.',
       files: [
