@@ -1,17 +1,13 @@
-/* SkillCard — type badge, source label, enabled toggle, delete. */
+/* SkillCard — type badge, source label, version, linked-agent count,
+   enabled toggle, delete (with confirmation modal). */
 "use client";
 
 import React from "react";
 import { Icon, Badge, Toggle } from "@devdigest/ui";
 import type { Skill } from "@devdigest/shared";
 import { useDeleteSkill } from "../../../../lib/hooks/skills";
-
-const SOURCE_LABEL: Record<string, string> = {
-  manual: "Manual",
-  imported_url: "Imported",
-  extracted: "Extracted",
-  community: "Community",
-};
+import { SOURCE_LABEL } from "./constants";
+import { ConfirmDeleteModal } from "../../../../components/ConfirmDeleteModal";
 
 export function SkillCard({
   skill,
@@ -25,6 +21,8 @@ export function SkillCard({
   onToggle?: (enabled: boolean) => void;
 }) {
   const del = useDeleteSkill();
+  const [confirming, setConfirming] = React.useState(false);
+  const agentCount = skill.agent_count ?? 0;
   return (
     <div
       onClick={onClick}
@@ -60,12 +58,11 @@ export function SkillCard({
         <button
           onClick={(e) => {
             e.stopPropagation();
-            if (window.confirm(`Delete skill "${skill.name}"? This cannot be undone.`))
-              del.mutate(skill.id);
+            setConfirming(true);
           }}
           disabled={del.isPending}
-          title="Delete skill"
-          aria-label="Delete skill"
+          title="Delete"
+          aria-label="Delete"
           style={{
             background: "none",
             border: "none",
@@ -107,7 +104,27 @@ export function SkillCard({
             needs vetting
           </Badge>
         )}
+        <span
+          className="mono"
+          style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap" }}
+        >
+          <span title="Current version">v{skill.version}</span>
+          {" · "}
+          <span title="Agents using this skill">
+            {agentCount} {agentCount === 1 ? "agent" : "agents"}
+          </span>
+        </span>
       </div>
+      {confirming && (
+        <ConfirmDeleteModal
+          title="Delete skill"
+          itemKind="skill"
+          itemName={skill.name}
+          pending={del.isPending}
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => del.mutate(skill.id, { onSettled: () => setConfirming(false) })}
+        />
+      )}
     </div>
   );
 }

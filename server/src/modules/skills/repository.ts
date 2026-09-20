@@ -48,6 +48,20 @@ export class SkillsRepository {
     return this.db.select().from(t.skills).where(eq(t.skills.workspaceId, workspaceId));
   }
 
+  /**
+   * Linked-agent count per skill for every skill of the workspace, in ONE
+   * grouped query. Skills without links are absent from the map (count = 0).
+   */
+  async agentCounts(workspaceId: string): Promise<Map<string, number>> {
+    const rows = await this.db
+      .select({ skillId: t.agentSkills.skillId, cnt: count() })
+      .from(t.agentSkills)
+      .innerJoin(t.skills, eq(t.skills.id, t.agentSkills.skillId))
+      .where(eq(t.skills.workspaceId, workspaceId))
+      .groupBy(t.agentSkills.skillId);
+    return new Map(rows.map((r) => [r.skillId, Number(r.cnt)]));
+  }
+
   async getById(workspaceId: string, id: string): Promise<SkillRow | undefined> {
     const [row] = await this.db
       .select()

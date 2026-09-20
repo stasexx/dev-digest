@@ -118,6 +118,9 @@ export function useSetAgentSkills() {
       api.post(`/agents/${agentId}/skills`, { skill_ids: skillIds }),
     onSuccess: (_d, { agentId }) => {
       qc.invalidateQueries({ queryKey: ["agent-skill-links", agentId] });
+      // Linked counters on the list cards (Agent.skill_count / Skill.agent_count).
+      qc.invalidateQueries({ queryKey: ["agents"] });
+      qc.invalidateQueries({ queryKey: ["skills"] });
     },
   });
 }

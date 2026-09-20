@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Badge, Skeleton } from "@devdigest/ui";
+import { Badge, Skeleton, Toggle } from "@devdigest/ui";
 import type { Skill } from "@devdigest/shared";
 import { useSkills, useAgentSkillLinks, useSetAgentSkills } from "../../../../../../../lib/hooks/skills";
 
@@ -27,14 +27,11 @@ export function SkillsTab({ agentId }: { agentId: string }) {
   const skillMap = new Map((allSkills ?? []).map((s: Skill) => [s.id, s]));
   const linkedSet = new Set(orderedIds);
 
-  const enabledCount = orderedIds.filter((id) => {
-    const sk = skillMap.get(id);
-    return sk?.enabled && linkedSet.has(id);
-  }).length;
+  // "Enabled" here = linked to this agent (the on/off toggle of the row).
+  const enabledCount = orderedIds.filter((id) => skillMap.has(id)).length;
+  const matchesSearch = (sk: Skill) => !search || sk.name.toLowerCase().includes(search.toLowerCase());
 
-  const filteredSkills = (allSkills ?? []).filter((s: Skill) =>
-    !search || s.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredSkills = (allSkills ?? []).filter(matchesSearch);
 
   const toggleLink = (skillId: string) => {
     const next = linkedSet.has(skillId)
@@ -61,12 +58,13 @@ export function SkillsTab({ agentId }: { agentId: string }) {
     <div style={{ maxWidth: 580 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
         <span style={{ fontSize: 14, fontWeight: 600 }}>
-          {enabledCount} of {orderedIds.length} enabled
+          {enabledCount} of {(allSkills ?? []).length} enabled
         </span>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Filter skills…"
+          placeholder="Search skills by name…"
+          aria-label="Search skills"
           style={{
             marginLeft: "auto",
             background: "var(--bg-surface)",
@@ -81,7 +79,7 @@ export function SkillsTab({ agentId }: { agentId: string }) {
         />
       </div>
       <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 14 }}>
-        Order matters — drag to reorder.
+        Order matters — drag enabled skills to reorder. Disabled skills cannot be dragged.
       </p>
 
       {/* Linked skills (ordered, draggable) */}
@@ -89,10 +87,12 @@ export function SkillsTab({ agentId }: { agentId: string }) {
         <div style={{ marginBottom: 16 }}>
           {orderedIds.map((skillId, idx) => {
             const sk = skillMap.get(skillId);
-            if (!sk) return null;
+            // Search hides non-matching rows; `idx` stays the real position in the order.
+            if (!sk || !matchesSearch(sk)) return null;
             return (
               <div
                 key={skillId}
+                data-testid="skill-row-enabled"
                 draggable
                 onDragStart={() => handleDragStart(idx)}
                 onDragEnter={() => handleDragEnter(idx)}
@@ -106,12 +106,7 @@ export function SkillsTab({ agentId }: { agentId: string }) {
                 }}
               >
                 <span style={{ color: "var(--text-muted)", cursor: "grab", flexShrink: 0, fontSize: 14 }}>⠿</span>
-                <input
-                  type="checkbox"
-                  checked={true}
-                  onChange={() => toggleLink(skillId)}
-                  style={{ cursor: "pointer", flexShrink: 0 }}
-                />
+                <Toggle on onChange={() => toggleLink(skillId)} size={14} />
                 <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{sk.name}</span>
                 <Badge color="var(--text-secondary)" mono>{sk.type}</Badge>
               </div>
@@ -120,12 +115,14 @@ export function SkillsTab({ agentId }: { agentId: string }) {
         </div>
       )}
 
-      {/* Unlinked skills */}
+      {/* Disabled (unlinked) skills — not draggable and not drop targets. */}
       {filteredSkills
         .filter((s: Skill) => !linkedSet.has(s.id))
         .map((sk: Skill) => (
           <div
             key={sk.id}
+            data-testid="skill-row-disabled"
+            draggable={false}
             style={{
               display: "flex", alignItems: "center", gap: 10,
               padding: "8px 10px", borderRadius: 6, marginBottom: 4,
@@ -133,12 +130,7 @@ export function SkillsTab({ agentId }: { agentId: string }) {
             }}
           >
             <div style={{ width: 14, flexShrink: 0 }} />
-            <input
-              type="checkbox"
-              checked={false}
-              onChange={() => toggleLink(sk.id)}
-              style={{ cursor: "pointer", flexShrink: 0 }}
-            />
+            <Toggle on={false} onChange={() => toggleLink(sk.id)} size={14} />
             <span style={{ flex: 1, fontSize: 13 }}>{sk.name}</span>
             <Badge color="var(--text-secondary)" mono>{sk.type}</Badge>
           </div>

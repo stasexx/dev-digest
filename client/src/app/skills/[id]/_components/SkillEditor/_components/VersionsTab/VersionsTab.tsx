@@ -71,6 +71,14 @@ export function VersionsTab({ skillId }: { skillId: string }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {versions.map((v, idx) => {
           const prev = versions[idx + 1];
+          const isCurrent = v.version === currentVersion;
+          // Every previous version gets a Diff: against its predecessor, or — for
+          // the very first version, which has none — against the current body.
+          const diffPair = prev
+            ? { label: `v${prev.version} → v${v.version}`, oldText: prev.body, newText: v.body }
+            : !isCurrent && skill
+              ? { label: `v${v.version} → current (v${skill.version})`, oldText: v.body, newText: skill.body }
+              : null;
           return (
             <div
               key={v.version}
@@ -87,7 +95,7 @@ export function VersionsTab({ skillId }: { skillId: string }) {
                 {v.version === currentVersion && (
                   <Badge color="var(--accent-text)">Current</Badge>
                 )}
-                {prev && (
+                {diffPair && (
                   <Button
                     kind="secondary"
                     size="sm"
@@ -111,7 +119,7 @@ export function VersionsTab({ skillId }: { skillId: string }) {
                   </Button>
                 )}
               </div>
-              {diffOpen === v.version && prev && (
+              {diffOpen === v.version && diffPair && (
                 <div
                   style={{
                     marginTop: 10,
@@ -120,7 +128,10 @@ export function VersionsTab({ skillId }: { skillId: string }) {
                     padding: "8px 10px",
                   }}
                 >
-                  <SimpleDiff oldText={prev.body} newText={v.body} />
+                  <div className="mono" style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>
+                    {diffPair.label}
+                  </div>
+                  <SimpleDiff oldText={diffPair.oldText} newText={diffPair.newText} />
                 </div>
               )}
             </div>

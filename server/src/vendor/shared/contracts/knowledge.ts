@@ -128,6 +128,8 @@ export const Skill = z.object({
   enabled: z.boolean(),
   version: z.number().int(),
   evidence_files: z.array(z.string()).nullish(),
+  // Number of agents linked via agent_skills — populated by the list endpoint only.
+  agent_count: z.number().int().optional(),
 });
 export type Skill = z.infer<typeof Skill>;
 
@@ -266,6 +268,8 @@ export const Agent = z.object({
   // Inject repo-intel context (repo skeleton + callers + rank note) into this
   // agent's review prompt. Default on; gated again by the global flag.
   repo_intel: z.boolean().default(true),
+  // Number of skills linked via agent_skills — populated by the list endpoint only.
+  skill_count: z.number().int().optional(),
 });
 export type Agent = z.infer<typeof Agent>;
 

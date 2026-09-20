@@ -52,8 +52,11 @@ export class SkillsService {
   }
 
   async list(workspaceId: string): Promise<Skill[]> {
-    const rows = await this.repo.list(workspaceId);
-    return rows.map(toSkillDto);
+    const [rows, counts] = await Promise.all([
+      this.repo.list(workspaceId),
+      this.repo.agentCounts(workspaceId),
+    ]);
+    return rows.map((row) => ({ ...toSkillDto(row), agent_count: counts.get(row.id) ?? 0 }));
   }
 
   async get(workspaceId: string, id: string): Promise<Skill | undefined> {

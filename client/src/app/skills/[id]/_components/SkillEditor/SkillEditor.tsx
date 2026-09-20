@@ -10,7 +10,7 @@ import { StatsTab } from "./_components/StatsTab";
 const TABS = [
   { key: "config", label: "Config", icon: "Settings" as const },
   { key: "preview", label: "Preview", icon: "Eye" as const },
-  { key: "versions", label: "Versions", icon: "GitBranch" as const },
+  { key: "versions", label: "Versioning", icon: "GitBranch" as const },
   { key: "stats", label: "Stats", icon: "BarChart" as const },
 ];
 

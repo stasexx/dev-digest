@@ -2,6 +2,7 @@
 name: pr-self-review
 description: "Local pre-PR gate for DevDigest. Run before opening or updating a pull request — i.e. before `git push`, `gh pr create`, or `gh pr merge` — or on demand via /pr-self-review. Computes the diff against origin/main, runs cheap deterministic gates (typecheck, tests, and — when configured — lint and dependency-cruiser), then routes the changed files through the project's architecture/quality skills per file bucket (UI vs backend), adversarially verifies every CRITICAL, and BLOCKS the push when any verified CRITICAL remains. Use whenever the user is about to push/open/merge a PR or asks to self-review local changes."
 user-invocable: true
+disable-model-invocation: true
 version: "1.0.0"
 ---
 
@@ -21,13 +22,34 @@ Companion files: **[routing.md](routing.md)** (diff scope + file→skill map), *
 
 ## When this runs
 
-1. **Automatically** — a `PreToolUse` hook (`scripts/check-gate.sh`, wired in
-   `.claude/settings.json`) intercepts `git push` / `gh pr create` / `gh pr merge` and denies
-   the command unless a fresh PASS is on record. The hook does **not** run the review; it only
-   enforces that one ran and passed for the *current* diff.
-2. **Manually** — `/pr-self-review`, or when the user asks to "self-review" / "check my
-   changes before the PR". This is the path that actually performs the review and writes the
-   state file the hook reads.
+1. **Manually (the only active path)** — `/pr-self-review`, or when the user explicitly asks to
+   "self-review" / "check my changes before the PR". This performs the review and writes the
+   state file. Model auto-invocation is off (`disable-model-invocation: true` in the
+   frontmatter), so the skill never starts on its own.
+2. **Automatically — opt-in, currently DISABLED.** The `PreToolUse` hook
+   (`scripts/check-gate.sh`) is **not** wired in `.claude/settings.json`, so `git push` /
+   `gh pr create` / `gh pr merge` are not intercepted. The script is kept in the repo; when
+   enabled it denies those commands unless a fresh PASS is on record (it does **not** run the
+   review — it only enforces that one ran and passed for the *current* diff). To re-enable it,
+   add this to `.claude/settings.json`:
+
+   ```json
+   {
+     "hooks": {
+       "PreToolUse": [
+         {
+           "matcher": "Bash",
+           "hooks": [
+             {
+               "type": "command",
+               "command": "$CLAUDE_PROJECT_DIR/.claude/skills/pr-self-review/scripts/check-gate.sh"
+             }
+           ]
+         }
+       ]
+     }
+   }
+   ```
 
 ## Procedure
 

@@ -1,5 +1,6 @@
-/* /skills — Skills list. SkillCards + import. Selecting a skill navigates
-   to the multi-tab editor at /skills/:id. */
+/* /skills — Skills list. SkillCards + create/import. Clicking a card opens a
+   side-panel preview; "Open skill" there navigates to the multi-tab editor at
+   /skills/:id. */
 "use client";
 
 import React from "react";
@@ -9,12 +10,16 @@ import { AppShell } from "../../../../components/app-shell";
 import { useSkills, useUpdateSkill } from "../../../../lib/hooks/skills";
 import { SkillCard } from "../SkillCard";
 import { ImportDrawer } from "../ImportDrawer";
+import { CreateSkillModal } from "../CreateSkillModal";
+import { SkillPreviewDrawer } from "../SkillPreviewDrawer";
 
 export function SkillsListView() {
   const router = useRouter();
   const { data: skills, isLoading, isError, refetch } = useSkills();
   const update = useUpdateSkill();
   const [importOpen, setImportOpen] = React.useState(false);
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState("");
 
   const list = (skills ?? []).filter(
@@ -24,9 +29,22 @@ export function SkillsListView() {
       s.description.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Derived from the live list so toggles/edits are reflected in the open preview.
+  const selected = selectedId ? (skills ?? []).find((s) => s.id === selectedId) : undefined;
+
   return (
     <AppShell crumb={[{ label: "Skills Lab" }, { label: "Skills" }]}>
       {importOpen && <ImportDrawer onClose={() => setImportOpen(false)} />}
+      {createOpen && (
+        <CreateSkillModal onClose={() => setCreateOpen(false)} onCreated={(sk) => setSelectedId(sk.id)} />
+      )}
+      {selected && (
+        <SkillPreviewDrawer
+          skill={selected}
+          onClose={() => setSelectedId(null)}
+          onOpen={() => router.push(`/skills/${selected.id}?tab=config`)}
+        />
+      )}
       <div style={{ padding: "24px 32px", maxWidth: 960, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, flex: 1 }}>Skills</h1>
@@ -66,7 +84,8 @@ export function SkillsListView() {
               </Button>
             }
             items={[
-              { label: "Import from file", icon: "Upload", onClick: () => setImportOpen(true) },
+              { label: "Create", icon: "Edit", onClick: () => setCreateOpen(true) },
+              { label: "Import", icon: "Upload", onClick: () => setImportOpen(true) },
             ]}
           />
         </div>
@@ -90,8 +109,8 @@ export function SkillsListView() {
             icon="Sparkles"
             title="No skills yet"
             body="Import a skill from a file or create one from scratch."
-            cta="Import from file"
-            onCta={() => setImportOpen(true)}
+            cta="Create skill"
+            onCta={() => setCreateOpen(true)}
           />
         )}
         {list.length > 0 && (
@@ -106,7 +125,8 @@ export function SkillsListView() {
               <SkillCard
                 key={sk.id}
                 skill={sk}
-                onClick={() => router.push(`/skills/${sk.id}?tab=config`)}
+                active={sk.id === selectedId}
+                onClick={() => setSelectedId(sk.id)}
                 onToggle={(enabled) => update.mutate({ id: sk.id, patch: { enabled } })}
               />
             ))}
