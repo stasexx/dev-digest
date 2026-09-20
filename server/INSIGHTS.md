@@ -7,7 +7,7 @@ so the next agent/session doesn't relearn it. Append-only — see the
 ## What Works
 
 - **2026-09-20** — Conventions Extractor groundwork already existed before the feature: `conventions` table (since `0000_init`), `ConventionCandidate` contract, `FeatureModelId 'conventions'` + Settings→Models row, `repoIntel.getConventionSamples()`, `skills.source='extracted'` + `evidence_files`, `MockLLMProvider.structuredBySchema`. Grep for the noun before designing a new table/contract. Evidence: `server/src/db/schema/knowledge.ts:31`, `server/src/modules/repo-intel/service.ts:630`.
-- **2026-09-20** — LLM evidence must be verified in code and the stored snippet read FROM THE FILE, not from the model: in the it-test 3 of 5 model candidates (missing file, line past EOF, `../` path) are dropped by `verifyEvidence` + `safeRelativePath`. Send samples line-numbered (`numberLines`) or the model cannot cite real lines. Evidence: `server/src/modules/conventions/helpers.ts:54`, `server/test/conventions.it.test.ts`.
+- **2026-09-20** — LLM evidence must be verified in code and the stored snippet read FROM THE FILE, not from the model: in the it-test 3 of 5 model candidates (missing file, line past EOF, `../` path) are dropped by `verifyEvidence` + `safeRelativePath`. Send samples line-numbered (`numberLines`) or the model cannot cite real lines. Evidence: `server/src/modules/conventions/helpers.ts:52`, `server/test/conventions.it.test.ts`.
 
 ## What Doesn't Work
 
