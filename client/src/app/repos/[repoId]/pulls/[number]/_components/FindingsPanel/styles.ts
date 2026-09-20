@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 export const s = {
   toolbar: {
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-end",
     gap: 10,
     marginBottom: 16,
     flexWrap: "wrap",

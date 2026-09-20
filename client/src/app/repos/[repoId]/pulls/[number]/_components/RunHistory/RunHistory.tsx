@@ -2,8 +2,9 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { Badge, Icon, CircularScore, type IconName } from "@devdigest/ui";
-import type { RunSummary, PrCommit } from "@devdigest/shared";
+import { Badge, Icon, CircularScore, SeverityBadge, type IconName } from "@devdigest/ui";
+import type { RunSummary, PrCommit, Severity } from "@devdigest/shared";
+import { RunCostBadge } from "@/components/RunCostBadge";
 
 /**
  * PR timeline — every agent run interleaved with the PR's commits, newest-first
@@ -87,12 +88,15 @@ function tsOf(s: string | null | undefined): number {
 export function RunHistory({
   runs,
   commits = [],
+  severityByRun,
   onOpenTrace,
   onGoToReview,
   onDelete,
 }: {
   runs: RunSummary[];
   commits?: PrCommit[];
+  /** Per-run findings-by-severity, keyed by run id. Display only — filtering lives in Review runs. */
+  severityByRun?: Record<string, Record<Severity, number>>;
   /** Open the trace + log drawer for a run (the logs icon). */
   onOpenTrace: (runId: string) => void;
   /** Jump to this run's inline review accordion below (clicking the agent name). */
@@ -149,6 +153,10 @@ export function RunHistory({
         const r = item.run;
         const o = outcomeOf(r);
         const settled = r.status === "done";
+        const sevCounts = severityByRun?.[r.run_id];
+        const sevShown = sevCounts
+          ? (Object.keys(sevCounts) as Severity[]).filter((sev) => sevCounts[sev] > 0)
+          : [];
         return (
           <div key={`run:${r.run_id}`} style={rowStyle}>
             <Badge color={o.color} bg={o.bg} icon={o.icon}>
@@ -195,8 +203,28 @@ export function RunHistory({
                 </div>
               )}
             </div>
+            {settled && sevCounts && sevShown.length > 0 && (
+              <div
+                style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}
+                data-testid={`run-severity-${r.run_id}`}
+              >
+                {sevShown.map((sev) => (
+                  <SeverityBadge key={sev} severity={sev} count={sevCounts[sev]} compact />
+                ))}
+              </div>
+            )}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, fontSize: 11, color: "var(--text-muted)", flexShrink: 0 }}>
               {r.ran_at && <span>{new Date(r.ran_at).toLocaleTimeString()}</span>}
+              {settled && (
+                <span style={{ fontSize: 11 }}>
+                  <RunCostBadge
+                    variant="withTokens"
+                    tokensIn={r.tokens_in}
+                    tokensOut={r.tokens_out}
+                    cost={r.cost_usd}
+                  />
+                </span>
+              )}
             </div>
             <button
               type="button"
