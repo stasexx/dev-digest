@@ -1,25 +1,37 @@
 import type { CSSProperties } from "react";
 
+const POPOVER_MAX_HEIGHT = 420;
+
+// No gap between cell and popover, so moving the pointer into it never crosses dead space.
+const popoverBase: CSSProperties = {
+  position: "fixed",
+  zIndex: 40,
+  width: 380,
+  maxHeight: POPOVER_MAX_HEIGHT,
+  overflowY: "auto",
+  padding: 12,
+  borderRadius: 10,
+  border: "1px solid var(--border)",
+  background: "var(--bg-elevated)",
+  boxShadow: "0 12px 32px rgba(0,0,0,.35)",
+  cursor: "default",
+  textAlign: "left",
+};
+
 /** Co-located styles for FindingsCell + its hover popover. */
 export const s = {
   cell: { position: "relative", display: "inline-flex", alignItems: "center", gap: 4, outline: "none" } satisfies CSSProperties,
   muted: { color: "var(--text-muted)", fontSize: 13 } satisfies CSSProperties,
-  popover: {
-    position: "absolute",
-    top: "calc(100% + 8px)",
-    right: 0,
-    zIndex: 40,
-    width: 380,
-    maxHeight: 420,
-    overflowY: "auto",
-    padding: 12,
-    borderRadius: 10,
-    border: "1px solid var(--border)",
-    background: "var(--bg-elevated)",
-    boxShadow: "0 12px 32px rgba(0,0,0,.35)",
-    cursor: "default",
-    textAlign: "left",
-  } satisfies CSSProperties,
+  /** Fixed to the viewport under the cell; flips above it when there is no room below. */
+  popover: (anchor: DOMRect): CSSProperties => {
+    const below = window.innerHeight - anchor.bottom;
+    const flip = below < POPOVER_MAX_HEIGHT + 16 && anchor.top > below;
+    return {
+      ...popoverBase,
+      right: Math.max(8, window.innerWidth - anchor.right),
+      ...(flip ? { bottom: window.innerHeight - anchor.top } : { top: anchor.bottom }),
+    };
+  },
   heading: {
     fontSize: 11,
     fontWeight: 700,
