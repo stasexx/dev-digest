@@ -128,6 +128,8 @@ export const Skill = z.object({
   enabled: z.boolean(),
   version: z.number().int(),
   evidence_files: z.array(z.string()).nullish(),
+  // Number of agents linked via agent_skills — populated by the list endpoint only.
+  agent_count: z.number().int().optional(),
 });
 export type Skill = z.infer<typeof Skill>;
 
@@ -140,6 +142,34 @@ export const CommunitySkill = z.object({
 });
 export type CommunitySkill = z.infer<typeof CommunitySkill>;
 
+export const SkillVersion = z.object({
+  skill_id: z.string(),
+  version: z.number().int(),
+  body: z.string(),
+  message: z.string().nullable().optional(),
+  created_at: z.string(),
+});
+export type SkillVersion = z.infer<typeof SkillVersion>;
+
+export const SkillStats = z.object({
+  used_by_count: z.number().int(),
+  agents: z.array(z.object({ id: z.string(), name: z.string() })),
+  version_count: z.number().int(),
+  findings_by_category: z.record(z.string(), z.number()),
+  findings_last_30d: z.number().int(),
+});
+export type SkillStats = z.infer<typeof SkillStats>;
+
+export const SkillImportPreview = z.object({
+  name: z.string(),
+  description: z.string(),
+  type: SkillType,
+  source: SkillSource,
+  body: z.string(),
+  ignored_files: z.array(z.string()),
+});
+export type SkillImportPreview = z.infer<typeof SkillImportPreview>;
+
 // ---- Conventions ----
 export const ConventionCandidate = z.object({
   id: z.string(),
@@ -148,8 +178,58 @@ export const ConventionCandidate = z.object({
   evidence_snippet: z.string(),
   confidence: z.number().min(0).max(1),
   accepted: z.boolean(),
+  category: z.string(),
+  /** 1-based line in `evidence_path` the rule was observed on (code-verified). */
+  evidence_line: z.number().int().positive().nullable(),
+  status: z.enum(['pending', 'accepted', 'rejected']),
 });
 export type ConventionCandidate = z.infer<typeof ConventionCandidate>;
+
+export const ConventionStatus = z.enum(['pending', 'accepted', 'rejected']);
+export type ConventionStatus = z.infer<typeof ConventionStatus>;
+
+/** What the LLM must return for a conventions scan (structured output). */
+export const ConventionExtraction = z.object({
+  candidates: z.array(
+    z.object({
+      category: z.string(),
+      rule: z.string(),
+      evidence: z.object({ file: z.string(), line: z.number().int() }),
+      confidence: z.number().min(0).max(1),
+    }),
+  ),
+});
+export type ConventionExtraction = z.infer<typeof ConventionExtraction>;
+
+/** Result of `POST /repos/:id/conventions/extract`. */
+export const ConventionScanResult = z.object({
+  candidates: z.array(ConventionCandidate),
+  /** Files sent to the model (configs + top-ranked sources). */
+  sampled_files: z.array(z.string()),
+  proposed: z.number().int(),
+  /** Dropped by the code-level evidence check (file/line not found). */
+  dropped_unverified: z.number().int(),
+  /** Dropped because the rule was already reviewed (accepted/rejected) earlier. */
+  dropped_known: z.number().int(),
+  model: z.string(),
+});
+export type ConventionScanResult = z.infer<typeof ConventionScanResult>;
+
+export const ConventionUpdateInput = z.object({
+  status: ConventionStatus.optional(),
+  rule: z.string().min(1).optional(),
+  category: z.string().min(1).optional(),
+});
+export type ConventionUpdateInput = z.infer<typeof ConventionUpdateInput>;
+
+export const ConventionsToSkillInput = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  /** Edited markdown body; when omitted the server builds it from accepted candidates. */
+  body: z.string().optional(),
+  agent_id: z.string().optional(),
+});
+export type ConventionsToSkillInput = z.infer<typeof ConventionsToSkillInput>;
 
 // ---- Agents ----
 // 'openrouter' routes through the OpenAI-compatible API (OpenAIProvider with a
@@ -188,6 +268,8 @@ export const Agent = z.object({
   // Inject repo-intel context (repo skeleton + callers + rank note) into this
   // agent's review prompt. Default on; gated again by the global flag.
   repo_intel: z.boolean().default(true),
+  // Number of skills linked via agent_skills — populated by the list endpoint only.
+  skill_count: z.number().int().optional(),
 });
 export type Agent = z.infer<typeof Agent>;
 

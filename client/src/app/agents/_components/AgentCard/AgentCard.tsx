@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { Icon, Badge, Toggle } from "@devdigest/ui";
 import type { Agent } from "@devdigest/shared";
 import { useDeleteAgent } from "../../../../lib/hooks/agents";
+import { ConfirmDeleteModal } from "../../../../components/ConfirmDeleteModal";
 import { modelColor } from "./helpers";
 import { s } from "./styles";
 
@@ -25,7 +26,10 @@ export function AgentCard({
 }) {
   const t = useTranslations("agents");
   const del = useDeleteAgent();
+  const [confirming, setConfirming] = React.useState(false);
   const color = modelColor(ag.model);
+  // Explicit prop wins; otherwise use the counter the list endpoint provides.
+  const linkedSkills = skillCount ?? ag.skill_count;
   return (
     <div onClick={onClick} style={s.card(!!active, ag.enabled)}>
       <div style={s.headerRow}>
@@ -41,11 +45,11 @@ export function AgentCard({
         <button
           onClick={(e) => {
             e.stopPropagation();
-            if (window.confirm(`Delete agent "${ag.name}"? This cannot be undone.`)) del.mutate(ag.id);
+            setConfirming(true);
           }}
           disabled={del.isPending}
-          title="Delete agent"
-          aria-label="Delete agent"
+          title="Delete"
+          aria-label="Delete"
           style={{
             background: "none",
             border: "none",
@@ -60,15 +64,28 @@ export function AgentCard({
       </div>
       <div style={s.description}>{ag.description || t("card.noDescription")}</div>
       <div style={s.metaRow}>
+        <span className="mono" style={s.provider} title="Provider">
+          {ag.provider}
+        </span>
         <span className="mono" style={s.modelChip(color)}>
           {ag.model}
         </span>
-        {skillCount != null && (
+        {linkedSkills != null && (
           <Badge color="var(--text-secondary)" icon="Sparkles">
-            {t("card.skillCount", { count: skillCount })}
+            {t("card.skillCount", { count: linkedSkills })}
           </Badge>
         )}
       </div>
+      {confirming && (
+        <ConfirmDeleteModal
+          title="Delete agent"
+          itemKind="agent"
+          itemName={ag.name}
+          pending={del.isPending}
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => del.mutate(ag.id, { onSettled: () => setConfirming(false) })}
+        />
+      )}
     </div>
   );
 }
