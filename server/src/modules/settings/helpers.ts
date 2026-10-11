@@ -9,6 +9,10 @@ export interface SettingsRow {
 /** Collapse key/value setting rows into a flat `Settings` object. */
 export function rowsToSettings(rows: SettingsRow[]): Settings {
   const out: Record<string, unknown> = {};
-  for (const r of rows) out[r.key] = r.value;
+  for (const r of rows) {
+    // A null value means "unset": leave the key out so callers fall back to defaults.
+    if (r.value === null) continue;
+    out[r.key] = r.value;
+  }
   return out as Settings;
 }
