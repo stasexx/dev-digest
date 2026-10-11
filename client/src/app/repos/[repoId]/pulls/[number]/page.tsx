@@ -17,7 +17,7 @@ import { DiffTab } from "./_components/DiffTab";
 import RunTraceDrawer from "./_components/RunTraceDrawer";
 import { usePullDetail, usePulls } from "../../../../../lib/hooks";
 import { useQueryClient } from "@tanstack/react-query";
-import { usePrReviews, useCancelRun, usePrActiveRuns, usePrRuns, useDeleteRun } from "../../../../../lib/hooks/reviews";
+import { usePrReviews, useCancelRun, usePrActiveRuns, usePrRuns, useDeleteRun, useRefreshOnRunsSettled } from "../../../../../lib/hooks/reviews";
 import { useActiveRepo, useRepoNotFound } from "../../../../../lib/contexts/repoContext";
 import { ApiError } from "../../../../../lib/api";
 import { githubPrUrl } from "../../../../../lib/utils/githubUrls";
@@ -47,6 +47,8 @@ export default function PRDetailPage() {
   const deleteRun = useDeleteRun(prId);
   const liveRunIds = (activeRuns ?? []).map((r) => r.run_id);
   const reviewRunning = liveRunIds.length > 0;
+  // Refresh reviews + run history when runs settle, whichever tab is open.
+  useRefreshOnRunsSettled(prId, reviewRunning);
   const cancel = useCancelRun();
   const invalidateActiveRuns = () => {
     if (prId) qc.invalidateQueries({ queryKey: ["pr-active-runs", prId] });
@@ -162,12 +164,7 @@ export default function PRDetailPage() {
         )}
 
         {tab === "diff" && (
-          <DiffTab
-            prId={prId}
-            filesCount={pr.files_count}
-            files={pr.files}
-            canComment={pr.status === "open"}
-          />
+          <DiffTab prId={prId} pr={pr} reviewRunning={reviewRunning} />
         )}
       </div>
 
