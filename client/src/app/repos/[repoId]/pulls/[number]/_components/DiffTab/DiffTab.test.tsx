@@ -96,7 +96,7 @@ describe("DiffTab Smart Diff", () => {
       expect(els[i]!.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
     expect(within(els[0]!).getByText("2 files")).toBeInTheDocument();
-    expect(within(els[4]!).getByText("1 files")).toBeInTheDocument();
+    expect(within(els[4]!).getByText("1 file")).toBeInTheDocument();
   });
 
   it("(b) docs and boilerplate start collapsed; boilerplate reveals the lock file", async () => {
