@@ -57,6 +57,23 @@ export function usePrReviews(prId: string | null | undefined) {
   });
 }
 
+/**
+ * Sync server run state -> query cache: when `running` flips true -> false for a
+ * PR, invalidate its reviews and run history so every tab shows fresh findings.
+ * (The effect syncs with an external system, the server's run lifecycle.)
+ */
+export function useRefreshOnRunsSettled(prId: string | null | undefined, running: boolean) {
+  const qc = useQueryClient();
+  const prev = React.useRef(running);
+  React.useEffect(() => {
+    if (prev.current && !running && prId) {
+      qc.invalidateQueries({ queryKey: ["reviews", prId] });
+      qc.invalidateQueries({ queryKey: ["pr-runs", prId] });
+    }
+    prev.current = running;
+  }, [running, prId, qc]);
+}
+
 /** Delete one run from the PR's run history (+ its trace). */
 export function useDeleteRun(prId: string | null | undefined) {
   const qc = useQueryClient();
