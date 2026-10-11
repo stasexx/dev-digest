@@ -39,7 +39,8 @@ export const s = {
     overflow: "hidden",
     textOverflow: "ellipsis",
   } satisfies CSSProperties,
-  metaRow: { display: "flex", alignItems: "center", gap: 8 } satisfies CSSProperties,
+  metaRow: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" } satisfies CSSProperties,
+  provider: { fontSize: 12, color: "var(--text-muted)" } satisfies CSSProperties,
   modelChip: (color: string): CSSProperties => ({
     fontSize: 12,
     fontWeight: 600,
