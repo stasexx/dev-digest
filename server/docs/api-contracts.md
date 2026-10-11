@@ -31,6 +31,7 @@ Rate limit: `POST /pulls/:id/review` — 120/min globally.
 |--------|------|-------------|
 | `GET` | `/pulls/:id/reviews` | List reviews for a PR |
 | `GET` | `/reviews/:id` | Get review with findings |
+| `GET` | `/pulls/:id/smart-diff` | PR files grouped by role (`core, tests, wiring, docs, boilerplate`) + finding lines of the latest review; deterministic, no LLM |
 | `GET` | `/runs/:id/events` | SSE stream of `RunEvent` objects |
 
 ### Agents
