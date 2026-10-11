@@ -150,12 +150,15 @@ describe("DiffTab Smart Diff", () => {
     await waitFor(() => expect(posted.some((u) => u.includes("/findings/f1/accept"))).toBe(true));
   });
 
-  it("(h) clicking the card header collapses it to the one-line header", async () => {
+  it("(h) clicking the card header collapses it to a single row", async () => {
     renderTab(reviewOf([f("f1", "src/a.ts", 2)]));
     const title = await screen.findByText("title-f1");
     expect(screen.getByText("rationale-f1")).toBeInTheDocument();
+    expect(screen.getByText(/src\/a\.ts:2/)).toBeInTheDocument();
     fireEvent.click(title);
     expect(screen.queryByText("rationale-f1")).not.toBeInTheDocument();
+    // one row: the file:line / confidence meta row is gone, the title stays
+    expect(screen.queryByText(/src\/a\.ts:2/)).not.toBeInTheDocument();
     expect(screen.getByText("title-f1")).toBeInTheDocument();
   });
 
