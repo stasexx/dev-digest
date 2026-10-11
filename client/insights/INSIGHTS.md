@@ -21,6 +21,8 @@ See also: `insights/gotchas.md` for known quirks at project start.
 
 2026-06-17 — `createPortal(content, document.body)` escapes `overflow: hidden` containers. Use for any overlay/popover rendered inside a clipped container. ref: client/src/app/repos/[repoId]/pulls/_components/FindingsPopover/FindingsPopover.tsx:96
 
+2026-10-11 — Live refresh without SSE: `usePrActiveRuns` already polls every 4 s while a run is `running`; `useRefreshOnRunsSettled` watches that flag and invalidates `["reviews", prId]` + `["pr-runs", prId]` on the true→false edge, so any open tab updates ≤4 s after the run ends. ref: client/src/lib/hooks/reviews.ts:65
+
 ## What Doesn't Work
 
 2026-06-18 — Fixing `.js` extensions in `client/src/vendor/shared/index.ts` alone is NOT enough. The individual contract files also import each other with `.js` extensions (`eval-ci.ts`, `observability.ts`, `platform.ts`, `productionize.ts`, `review-api.ts`, `adapters.ts`). All 6 must be fixed in addition to the barrel. Grep: `from '\./.*\.js'` in `client/src/vendor/shared/` to find them all. ref: client/src/vendor/shared/contracts/eval-ci.ts:2
@@ -30,6 +32,8 @@ See also: `insights/gotchas.md` for known quirks at project start.
 2026-06-18 — `SeverityChip` with "N dots total" (render exactly N circles) is visually wrong — it gives no sense of scale. The correct model is always 12 slots: first `min(count, 12)` render as a single merged solid segment (height=2px), the remaining (12-N) render as faded separate dots. Width of merged segment = `N * SLOT_W + (N-1) * GAP`. ref: client/src/components/SeverityChip/SeverityChip.tsx:1
 
 2026-06-17 — `Icon.AlertCircle` does not exist in `@devdigest/ui` — runtime error "Element type is invalid: expected a string... but got undefined". Never guess icon names; check existing usages (`grep -oh "Icon\.[A-Za-z]*"`) to find what's available. ref: client/src/app/repos/[repoId]/pulls/_components/FindingsPopover/FindingsPopover.tsx:56
+
+2026-10-11 — `position: sticky; top: 0` on a header inside the PR page does not pin: `PrDetailHeader` is itself `sticky; top: 0; zIndex: 5` in the same `main {overflow:auto}` scroll container, so the inner header slides under it. Offset by the measured header height (`data-pr-sticky-header` + ResizeObserver in `useStickyOffset`). ref: client/src/app/repos/[repoId]/pulls/[number]/_components/DiffTab/useStickyOffset.ts:12
 
 ## Codebase Patterns
 
@@ -46,6 +50,10 @@ See also: `insights/gotchas.md` for known quirks at project start.
 2026-06-20 — `src/lib/` is structured into three groups: `hooks/` (React Query hooks by domain: settings, repos, pulls, context-files, agents, reviews, trace, repo-intel), `contexts/` (React providers: RepoProvider/useActiveRepo, ThemeProvider/useTheme, ToastProvider/useToast/notify, Providers composite), and `utils/` (pure functions with no React deps: githubUrls, modelLabel, featureModels). Each group has an `index.ts` barrel. `api.ts` and `types.ts` stay at `lib/` root as core infrastructure. ref: client/src/lib/contexts/index.ts:1
 
 2026-06-20 — Team convention: use `@/` path alias for any import going 3+ levels up (`../../../`). Short relative paths (1–2 levels, same feature) are fine. The `@/` alias maps to `src/` via `client/tsconfig.json`. Deep relative paths like `../../../../../lib/hooks/reviews` are explicitly rejected — write `@/lib/hooks/reviews` instead. This is a preference, not a TS enforcement — the compiler accepts both. ref: client/tsconfig.json:1
+
+2026-10-11 — `components/diff-viewer` stays route-agnostic: finding cards are injected through `DiffFindingsApi.Card`. That component must be defined at module level (`DiffFindingCard`), not inline in render — a new function identity per render remounts every card and drops its collapsed state. ref: client/src/app/repos/[repoId]/pulls/[number]/_components/DiffTab/DiffTab.tsx:71
+
+2026-10-11 — "Latest review" = newest `kind:'review'` per `agent_id` (null-agent rows form one bucket), and it exists twice: client `selectLatestFindings` and server `selectLatestReviewFindings`, with identical test scenario names. Change one → change both. ref: client/src/app/repos/[repoId]/pulls/[number]/_components/DiffTab/helpers.ts:9, server/src/modules/smart-diff/helpers.ts:16
 
 ## Tool & Library Notes
 
@@ -64,6 +72,8 @@ See also: `insights/gotchas.md` for known quirks at project start.
 2026-06-20 — `src/lib/hooks/reviews.ts` imports `notify` directly via `from "../toast"` (sibling relative path), NOT through any barrel. When moving `toast.tsx` into `lib/contexts/`, updating only `app/` consumers is not enough — files inside `lib/hooks/` have their own direct imports. Always grep inside `lib/hooks/*.ts` when relocating lib files. Fix: change to `from "../contexts/toast"`. ref: client/src/lib/hooks/reviews.ts:8
 
 2026-06-20 — `src/components/showcase/Showcase.tsx` exports `Gallery`, not `Showcase` — despite the filename. Writing `export { Showcase } from "./showcase/Showcase"` in a barrel produces `TS2305: Module has no exported member 'Showcase'`. Fix: `export { Gallery } from "./showcase/Showcase"`. ref: client/src/components/showcase/Showcase.tsx:58
+
+2026-10-11 — Correction to the 2026-06-17 entry: `SEV[x].c` is a CSS variable (`var(--crit)`), not hex, so appending alpha digits does not work — use `inset 3px 0 0 ${c}` / a `*-bg` token. Also `@devdigest/ui` `Severity` has 4 keys (incl. `INFO`) while the shared contract has 3; type finding code with the shared one. ref: client/src/vendor/ui/primitives/tokens.ts:10, client/src/vendor/shared/contracts/findings.ts:11
 
 ## Session Notes
 
@@ -84,5 +94,7 @@ See also: `insights/gotchas.md` for known quirks at project start.
 2026-06-20 — `pr-self-review` uses `git diff $(git merge-base origin/main HEAD)...HEAD` — this only reviews **committed** changes in a feature branch. When run on `main` with HEAD = origin/main (e.g. after a merge, with unstaged changes), the diff is empty and the skill silently reports nothing. To test the skill, changes must be committed to a branch first. ref: .claude/skills/pr-self-review/SKILL.md:49
 
 2026-06-20 — To invoke `pr-self-review`, just call the Skill tool (or say "review my changes") — do NOT manually run `git diff` bash commands to collect the diff first. The skill's execution algorithm runs those commands itself internally. Manually pre-collecting diff before calling the skill is redundant and was explicitly corrected by the user. ref: .claude/skills/pr-self-review/SKILL.md:1
+
+2026-10-11 — HW-3 Smart Diff UI → Files changed grouped by role (Smart/Original order, sticky headers, ● files-with-findings, file dot, inline FindingCard with Accept/Dismiss, single-row collapse, unanchored block, one toggle for GitHub comments + findings, empty state, live refresh). Files: client/src/app/repos/[repoId]/pulls/[number]/_components/DiffTab/*, client/src/components/diff-viewer/*, client/src/lib/hooks/{smart-diff,reviews}.ts, client/messages/en/{prReview,shell}.json.
 
 ## Open Questions
