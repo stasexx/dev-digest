@@ -3,6 +3,8 @@
  * exponential backoff on transient failures (rate-limit / 5xx).
  */
 
+import { backoffDelay } from './backoff.js';
+
 export class TimeoutError extends Error {
   constructor(ms: number) {
     super(`Operation timed out after ${ms}ms`);
@@ -57,7 +59,7 @@ export async function withRetry<T>(fn: () => Promise<T>, opts: RetryOptions = {}
       lastErr = err;
       if (attempt === retries || !isRetryable(err)) break;
       opts.onRetry?.(attempt + 1, err);
-      const delay = Math.min(max, base * 2 ** attempt) + Math.random() * base;
+      const delay = backoffDelay(attempt, base, max);
       await new Promise((r) => setTimeout(r, delay));
     }
   }
