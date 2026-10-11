@@ -27,6 +27,7 @@ import { registerRunAgentOnPr } from './tools/run-agent-on-pr.js';
 import { registerGetBlastRadius } from './tools/get-blast-radius.js';
 
 import { resolveRepoId, resolvePullId } from './core/resolve.js';
+import { compactBlast } from './core/blast.js';
 import { pickReview, shapeFindings } from './core/findings.js';
 import { runReviewAndWait } from './core/run-review.js';
 
@@ -60,7 +61,7 @@ async function main(): Promise<void> {
     shapeFindings,
   });
 
-  registerGetBlastRadius(server);
+  registerGetBlastRadius(server, client, { resolvePullId, compactBlast });
 
   // Connect the stdio transport — exactly once
   const transport = new StdioServerTransport();

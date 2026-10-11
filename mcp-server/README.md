@@ -12,14 +12,16 @@ flowchart LR
   IDX --> T2[run-agent-on-pr]
   IDX --> T3[get-findings]
   IDX --> T4[get-conventions]
-  IDX --> T5[get-blast-radius STUB]
+  IDX --> T5[get-blast-radius]
   T2 --> RR[core/run-review.ts]
   T2 & T3 --> CF[core/findings.ts]
   T2 & T3 & T4 --> RES[core/resolve.ts]
   RR & CF & RES --> HC[http/client.ts]
   T1 --> HC
   HC -- fetch --> API[(DevDigest API :3001)]
-  T5 -. no I/O .-> IDX
+  T5 --> BL[core/blast.ts]
+  T5 --> RES
+  T5 --> HC
 ```
 
 ## Prerequisites
@@ -52,7 +54,7 @@ Dependencies are already declared in `package.json`; no separate build step is r
 | `devdigest_run_agent_on_pr` | `repo: string`, `pr: number`, `agent: string` | completed: `{ verdict, score, counts, findings[] }`; timeout: `{ status:"running", run_id, message }` | NOT readOnly, NOT idempotent, openWorld |
 | `devdigest_get_findings` | `repo: string`, `pr: number`, `run_id?: string`, `response_format?: "concise"\|"detailed"`, `offset?: number`, `limit?: number` | `{ verdict, score, total, returned, offset, counts, findings[] }` | readOnly, idempotent, openWorld |
 | `devdigest_get_conventions` | `repo: string` | `{ repo, conventions: [{ rule, file, confidence, accepted }] }` | readOnly, idempotent, openWorld |
-| `devdigest_get_blast_radius` | `repo?: string`, `pr?: number` | `{ status: "not_implemented", message }` | readOnly, idempotent, openWorld |
+| `devdigest_get_blast_radius` | `repo: string`, `pr: number` | concise map: `{ summary, stats, symbols[{symbol, callers["file:line (name)"], endpoints, crons}], without_callers, index_status, degraded, hint? }` | readOnly, idempotent, openWorld |
 
 ### Recommended call order
 
@@ -99,7 +101,7 @@ Open the Inspector UI, confirm all 5 `devdigest_*` tools appear with their input
 - `devdigest_get_conventions { repo: "owner/repo" }` → conventions list (or `isError` for an unknown repo).
 - `devdigest_run_agent_on_pr { repo, pr, agent }` → blocks, then `{ verdict, score, findings[] }`; unknown agent → `isError` with valid ids.
 - `devdigest_get_findings { repo, pr }` → concise findings; `response_format: "detailed"` for full fields.
-- `devdigest_get_blast_radius {}` → `{ status: "not_implemented" }` — no error.
+- `devdigest_get_blast_radius { repo, pr }` → concise blast map (same data as the PR Overview block); unknown PR → `isError` listing open PR numbers.
 
 ### CLI (no UI)
 
@@ -110,6 +112,7 @@ cd mcp-server
 pnpm call devdigest_list_agents
 pnpm call devdigest_get_conventions '{"repo":"owner/repo"}'
 pnpm call devdigest_run_agent_on_pr '{"repo":"owner/repo","pr":42,"agent":"<agent-id>"}'
+pnpm call devdigest_get_blast_radius '{"repo":"stasexx/dev-digest","pr":6}'  # or: node scripts/call.mjs ...
 ```
 
 It spawns the server over stdio, performs the handshake, calls the one tool, prints the
