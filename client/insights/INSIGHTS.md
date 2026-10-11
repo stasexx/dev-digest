@@ -31,6 +31,8 @@ See also: `insights/gotchas.md` for known quirks at project start.
 
 2026-06-17 — `Icon.AlertCircle` does not exist in `@devdigest/ui` — runtime error "Element type is invalid: expected a string... but got undefined". Never guess icon names; check existing usages (`grep -oh "Icon\.[A-Za-z]*"`) to find what's available. ref: client/src/app/repos/[repoId]/pulls/_components/FindingsPopover/FindingsPopover.tsx:56
 
+2026-10-11 — Putting the Blast radius card next to the Intent card at `minmax(440px, 1fr)`: on a 1440px window each card is ~495px, caller paths wrap, caller names overflow the card and the graph's endpoint column is clipped. Cards now stack below ~1120px (`minmax(560px, 1fr)`) and caller rows are a 3-column grid with ellipsis. ref: client/src/app/repos/[repoId]/pulls/[number]/_components/OverviewTab/styles.ts:6
+
 ## Codebase Patterns
 
 2026-06-22 — `OverviewTab.tsx` originally had a hardcoded English string `"Description"` as a `SectionLabel` child — violating the no-hardcoded-strings rule. This was fixed (migrated to `t("overview.descriptionLabel")`) when the `prId` prop was added in T8. Future implementers touching this file: the fix is already in place, don't revert it. ref: client/src/app/repos/[repoId]/pulls/[number]/_components/OverviewTab/OverviewTab.tsx:1
@@ -47,6 +49,8 @@ See also: `insights/gotchas.md` for known quirks at project start.
 
 2026-06-20 — Team convention: use `@/` path alias for any import going 3+ levels up (`../../../`). Short relative paths (1–2 levels, same feature) are fine. The `@/` alias maps to `src/` via `client/tsconfig.json`. Deep relative paths like `../../../../../lib/hooks/reviews` are explicitly rejected — write `@/lib/hooks/reviews` instead. This is a preference, not a TS enforcement — the compiler accepts both. ref: client/tsconfig.json:1
 
+2026-10-11 — Tests under bracket-named route folders import messages with deep relative paths (10–12 `../`) and must stub `fetch` for EVERY URL the component tree loads with contract-valid bodies: an `{}` for `/prior-prs` crashed `PriorPrsSection` and surfaced as an unrelated test's failure. ref: client/src/app/repos/[repoId]/pulls/[number]/_components/OverviewTab/_components/BlastRadiusCard/BlastRadiusCard.test.tsx:36
+
 ## Tool & Library Notes
 
 2026-06-20 — `pr-self-review` skill has two authoritative files that can drift: `SKILL.md` (step descriptions) and `rules/severity-levels.md` (severity definitions). They duplicate the test-coverage-gate rule — SKILL.md Step 6.5 is the source of truth; severity-levels.md must mirror it exactly. Gaps found: missing `< 20 lines changed` skip condition and `not-found.tsx` in the skip list. Always compare both files when editing either. ref: .claude/skills/pr-self-review/rules/severity-levels.md:58
@@ -57,6 +61,8 @@ See also: `insights/gotchas.md` for known quirks at project start.
 
 2026-06-18 — In RTL tests, `[style*="flex-direction: column"]` is too broad to assert "no SeverityChip rendered" — RunHistory's content wrapper also uses `flexDirection: column`, producing false positives. The reliable proxy for SeverityChip absence is `[style*="opacity: 0.2"]` (the faded dot elements), which is unique to that component. ref: client/src/app/repos/[repoId]/pulls/[number]/_components/RunHistory/RunHistory.test.tsx:110
 
+2026-10-11 — `--info` in the theme is GREY (`#6b7280`); blue "info" chips like the design's endpoint chips need `--accent-text` on `--accent-bg`. ref: client/src/vendor/ui/styles.css:20
+
 ## Recurring Errors & Fixes
 
 2026-06-17 — `git add` on paths with square brackets (Next.js dynamic routes like `[repoId]`, `[number]`) fails in zsh with "no matches found: client/src/app/repos/[repoId]/..." — zsh glob-expands brackets before git sees them. Fix: always quote such paths: `git add "client/src/app/repos/[repoId]/pulls/..."`. ref: client/src/app/repos/[repoId]/pulls/constants.ts:1
@@ -64,6 +70,8 @@ See also: `insights/gotchas.md` for known quirks at project start.
 2026-06-20 — `src/lib/hooks/reviews.ts` imports `notify` directly via `from "../toast"` (sibling relative path), NOT through any barrel. When moving `toast.tsx` into `lib/contexts/`, updating only `app/` consumers is not enough — files inside `lib/hooks/` have their own direct imports. Always grep inside `lib/hooks/*.ts` when relocating lib files. Fix: change to `from "../contexts/toast"`. ref: client/src/lib/hooks/reviews.ts:8
 
 2026-06-20 — `src/components/showcase/Showcase.tsx` exports `Gallery`, not `Showcase` — despite the filename. Writing `export { Showcase } from "./showcase/Showcase"` in a barrel produces `TS2305: Module has no exported member 'Showcase'`. Fix: `export { Gallery } from "./showcase/Showcase"`. ref: client/src/components/showcase/Showcase.tsx:58
+
+2026-10-11 — `client/insights/gotchas.md` claimed `@devdigest/shared` resolves to the server copy and that `fetch` is mocked globally — both false (own vendor copy; `setup.ts` mocks nothing). Corrected there. ref: client/src/test/setup.ts:1
 
 ## Session Notes
 
@@ -84,5 +92,7 @@ See also: `insights/gotchas.md` for known quirks at project start.
 2026-06-20 — `pr-self-review` uses `git diff $(git merge-base origin/main HEAD)...HEAD` — this only reviews **committed** changes in a feature branch. When run on `main` with HEAD = origin/main (e.g. after a merge, with unstaged changes), the diff is empty and the skill silently reports nothing. To test the skill, changes must be committed to a branch first. ref: .claude/skills/pr-self-review/SKILL.md:49
 
 2026-06-20 — To invoke `pr-self-review`, just call the Skill tool (or say "review my changes") — do NOT manually run `git diff` bash commands to collect the diff first. The skill's execution algorithm runs those commands itself internally. Manually pre-collecting diff before calling the skill is redundant and was explicitly corrected by the user. ref: .claude/skills/pr-self-review/SKILL.md:1
+
+2026-10-11 — HW-4 Blast Radius UI → Overview card: stat row, Tree (collapsible, rank-sorted, `file:line` → GitHub blob, endpoint/cron chips), SVG Graph view, degraded notice + Resync, Prior PRs section, all strings from `blast.json`. Files: client/src/app/repos/[repoId]/pulls/[number]/_components/OverviewTab/_components/BlastRadiusCard/**, client/src/lib/hooks/blast.ts, client/messages/en/blast.json.
 
 ## Open Questions

@@ -21,6 +21,10 @@ See also: `insights/gotchas.md` for known quirks at project start.
 
 2026-06-17 — `selectDistinctOn([agentRuns.prId])` for cost silently returns null when the most recent run errored (`cost_usd = null`). DISTINCT ON picks the newest row regardless of whether the value is null — so a trailing error run zeros out the entire COST column. Fix: use `sql\`sum(${t.agentRuns.costUsd})\`` with `.groupBy(t.agentRuns.prId)` — SQL SUM skips nulls, so error runs don't affect the total. ref: server/src/modules/pulls/routes.ts:122
 
+2026-10-11 — Trusting `MAX_CALLERS_PER_SYMBOL` as a per-symbol cap: `repoIntel.getBlastRadius` sorts ALL callers by rank and cuts the whole list at 20 (`callers.slice(0, MAX_CALLERS_PER_SYMBOL)`), so a PR touching a hot file can show 17 + 3 callers for two symbols. Also `BFS_DEPTH` is only passed through — the walk is 1 hop, endpoints come only from the direct caller's file. ref: server/src/modules/repo-intel/service.ts:386
+
+2026-10-11 — Prior PRs from the app's clone history come back empty: the clone is shallow (1 commit until a resync fetches 50), and per-file `git log -- <path>` hides merge commits anyway. The blast service scans merge/squash subjects over the whole log instead and tolerates `diffNameOnly(sha^1, sha)` failing at the shallow boundary. ref: server/src/modules/blast/service.ts:244
+
 ## Codebase Patterns
 
 2026-06-22 — The minimal `Logger` type (`{ info, warn, error, debug }`) for new server modules is NOT exported from `@devdigest/shared` — it lives in `server/src/modules/reviews/run-executor.ts` as `export type Logger`. Import it with `import type { Logger } from '../reviews/run-executor.js'`. ref: server/src/modules/reviews/run-executor.ts:31
@@ -37,11 +41,15 @@ See also: `insights/gotchas.md` for known quirks at project start.
 
 2026-06-17 — `nullish()` (not `nullable()` or `optional()`) is the convention for optional DTO fields in `platform.ts`. Use `z.number().nullish()` for fields that may be absent from older DB rows — accepts both `null` and `undefined` from Drizzle. ref: server/src/vendor/shared/contracts/platform.ts:157
 
+2026-10-11 — The repo-intel facade does NOT drop callers that live in the symbol's own declaring file (no such filter in its SQL), so `toBlastRadius` filters them before grouping flat `callers` by `viaSymbol` into the `BlastRadius` contract. ref: server/src/modules/blast/helpers.ts:70
+
 ## Tool & Library Notes
 
 2026-06-17 — `sql` template tag from `drizzle-orm` is NOT included in the common named-export bundle used in this file (`and, desc, eq, inArray`). When adding raw SQL expressions (e.g. `sql\`sum(...)\``), add `sql` to the import explicitly: `import { and, desc, eq, inArray, sql } from 'drizzle-orm'`. Missing it gives a "sql is not defined" runtime error, not a TS error. ref: server/src/modules/pulls/routes.ts:3
 
 2026-06-17 — Drizzle `selectDistinctOn([col])` requires the first `orderBy()` column to match the DISTINCT ON column. For "latest row per group": `.selectDistinctOn([t.agentRuns.prId], {...}).orderBy(t.agentRuns.prId, desc(t.agentRuns.ranAt))`. Without the matching prId in orderBy, Postgres throws "SELECT DISTINCT ON expressions must match initial ORDER BY expressions". ref: server/src/modules/pulls/routes.ts:1
+
+2026-10-11 — `tsx watch` stopped picking up a NEW module (new files + `modules/index.ts` edit): new routes stayed 404 until `pnpm dev` was restarted. Verify fresh routes on a second instance (`API_PORT=3012 pnpm dev`) or restart before trusting a 404. ref: server/src/modules/index.ts:1
 
 ## Recurring Errors & Fixes
 
@@ -88,6 +96,8 @@ See also: `insights/gotchas.md` for known quirks at project start.
 2026-06-17 — COST column showed '–' for PRs with a trailing errored run → replaced `selectDistinctOn` with `sql\`sum\`` + `groupBy`. Root cause: DISTINCT ON returns the newest row even when its cost is null. Files: server/src/modules/pulls/routes.ts.
 
 2026-06-17 — Run Cost Badge: added `last_run_cost_usd` to PR list response. Used `selectDistinctOn` subquery to get most recent agent run cost per PR in a single query (no N+1). No migration needed — `agent_runs.cost_usd` column already existed in the schema. Files: server/src/modules/pulls/routes.ts, server/src/vendor/shared/contracts/platform.ts.
+
+2026-10-11 — HW-4 Blast Radius (planner → 6 implementers → architecture-reviewer ∥ plan-verifier) → `modules/blast/` with `GET /pulls/:id/blast` (one facade call, mapper to the contract, degraded/reason passthrough, LLM-free summary) and `GET /pulls/:id/prior-prs` (local git). Files: server/src/modules/blast/*, server/test/blast-*.test.ts, server/test/blast.it.test.ts, server/src/vendor/shared/contracts/blast.ts.
 
 ## Open Questions
 

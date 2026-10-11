@@ -2,11 +2,11 @@
 
 ## `@devdigest/shared` is not an npm package
 
-The alias resolves to `../server/src/vendor/shared` via `tsconfig.json` paths. There is no `node_modules/@devdigest/shared`. If the alias breaks (e.g., after a TS config change), you will see `Cannot find module '@devdigest/shared'` — fix the `paths` entry, not the import.
+The alias resolves to the client's OWN copy, `./src/vendor/shared/index.ts` (`client/tsconfig.json` paths), not to `../server/src/vendor/shared`. There is no `node_modules/@devdigest/shared`. A contract change must be made in both copies (server + client) — the client copy imports without `.js` extensions. If the alias breaks, you will see `Cannot find module '@devdigest/shared'` — fix the `paths` entry, not the import.
 
-## `fetch` is mocked globally in tests — no API server needed
+## `fetch` is NOT mocked globally — stub it per test file
 
-`src/test/setup.ts` replaces `global.fetch` with a vitest mock before any test runs. Test files that need specific responses call `vi.mocked(fetch).mockResolvedValueOnce(...)`. Never spin up a real API server for client unit tests.
+`src/test/setup.ts` only loads jest-dom matchers and a `ResizeObserver` shim. Tests that hit hooks stub `fetch` themselves (`vi.stubGlobal("fetch", vi.fn(...))` routed by URL) and must return contract-valid bodies for every URL the component fetches — a bare `{}` for a list endpoint crashes the render. Never spin up a real API server for client unit tests.
 
 ## SSE hook closes on `completed` or `failed` — not on unmount alone
 

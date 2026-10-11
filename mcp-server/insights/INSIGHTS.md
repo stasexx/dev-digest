@@ -11,6 +11,10 @@ See also: `insights/gotchas.md` for known quirks at project start.
 
 2026-06-26 — `@modelcontextprotocol/sdk` v1.29.0 installs cleanly with pnpm under `"type":"module"` package. ref: mcp-server/package.json
 
+2026-10-11 — Full MCP tool tests without stdio or HTTP: `InMemoryTransport.createLinkedPair()` + `Client.callTool` against the real server registration, with a fake `DevDigestClient`. ref: mcp-server/src/tools/get-blast-radius.test.ts:46
+
+2026-10-11 — Real Claude Code check of a tool: `claude -p "…" --mcp-config .mcp.json --strict-mcp-config --allowedTools mcp__devdigest__devdigest_get_blast_radius --output-format stream-json --verbose` from the repo root. The model first calls `ToolSearch` to load the deferred MCP tool, then the tool itself; the JSONL shows both calls and the tool result. ref: .mcp.json:1
+
 ## What Doesn't Work
 
 2026-06-26 — `console.log` anywhere under `src/` corrupts the MCP stdio transport (stdout is the JSON-RPC channel). ALL output must go through `log.*` which routes to `console.error` (stderr). ref: mcp-server/src/log.ts:1
@@ -29,9 +33,13 @@ See also: `insights/gotchas.md` for known quirks at project start.
 
 2026-06-26 — Conventions route requires UUID `repoId` — `GET /repos/:repoId/conventions` validates with `z.string().uuid()`. Passing a repo name will 400; must resolve name→id first via `GET /repos`. ref: server/src/modules/conventions/routes.ts:8
 
+2026-10-11 — UI/MCP parity: `compactBlast` must carry everything the block shows, incl. impacted endpoints no symbol claims (`other_endpoints`), or Claude Code and the page diverge on PRs where facts can't be attributed. ref: mcp-server/src/core/blast.ts:62
+
 ## Tool & Library Notes
 
 2026-06-26 — pnpm install warns about `esbuild` build scripts being ignored — benign, esbuild is a transitive dep of tsx; approve with `pnpm approve-builds` if needed. ref: mcp-server/package.json
+
+2026-10-11 — `node --import tsx --test "src/**/*.test.ts"` (quoted glob, Node 22) runs the suite with no new dependency, and tsx resolves the `@devdigest/shared` tsconfig alias at runtime. `pnpm start` prints a pnpm banner to stdout — check stdout cleanliness of the stdio server with `node --import tsx src/index.ts`, not `pnpm start`. ref: mcp-server/package.json:1
 
 ## Recurring Errors & Fixes
 

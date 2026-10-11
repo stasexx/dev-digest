@@ -16,8 +16,8 @@ Next.js 15 + React 19 Studio UI. App Router, RSC by default — add `"use client
 ## Conventions
 
 - All server state lives in TanStack Query. Query keys and fetch calls are in `src/lib/api.ts`. Hooks wrap them in `src/lib/hooks/`.
-- `@devdigest/shared` resolves to `../server/src/vendor/shared` via TS alias. Import Zod types from there — never redefine contracts locally.
-- `fetch` is mocked globally in vitest (`src/test/setup.ts`). Unit tests never hit a real API server.
+- `@devdigest/shared` resolves to the client's own copy `./src/vendor/shared` via TS alias (a mirror of `server/src/vendor/shared` — change both). Import Zod types from there — never redefine contracts locally.
+- `fetch` is NOT mocked globally (`src/test/setup.ts` only adds jest-dom + a ResizeObserver shim) — stub it per test file. Unit tests never hit a real API server.
 - i18n via `next-intl`. All user-facing strings go through `useTranslations()`. No hardcoded English strings in JSX.
 
 ## SSE (Review Streaming)
