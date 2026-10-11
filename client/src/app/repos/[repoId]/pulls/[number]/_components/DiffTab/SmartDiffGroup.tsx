@@ -14,9 +14,11 @@ interface SmartDiffGroupProps {
   files: PrFile[];
   commenting: DiffCommentApi;
   findings: DiffFindingsApi;
+  /** Offset below the page's sticky PR header. */
+  stickyTop?: number;
 }
 
-export function SmartDiffGroup({ role, files, commenting, findings }: SmartDiffGroupProps) {
+export function SmartDiffGroup({ role, files, commenting, findings, stickyTop = 0 }: SmartDiffGroupProps) {
   const t = useTranslations("prReview");
   const meta = ROLE_META[role];
   const [open, setOpen] = React.useState(!meta.defaultCollapsed);
@@ -25,7 +27,7 @@ export function SmartDiffGroup({ role, files, commenting, findings }: SmartDiffG
 
   return (
     <section>
-      <button type="button" aria-expanded={open} onClick={() => setOpen((v) => !v)} style={s.groupHeader}>
+      <button type="button" aria-expanded={open} onClick={() => setOpen((v) => !v)} style={{ ...s.groupHeader, top: stickyTop }}>
         <Chevron size={14} style={{ color: "var(--text-muted)" }} />
         <span style={s.square(meta.color)} aria-hidden />
         <span style={s.roleLabel}>{t(meta.labelKey)}</span>

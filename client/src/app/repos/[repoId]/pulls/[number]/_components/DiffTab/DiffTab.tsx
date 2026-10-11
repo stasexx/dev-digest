@@ -13,6 +13,7 @@ import { buildRoleGroups, diffReviewState, groupFindingsByPath, selectLatestFind
 import { DiffFindingCard } from "./DiffFindingCard";
 import { SmartDiffGroup } from "./SmartDiffGroup";
 import { SmartDiffToolbar } from "./SmartDiffToolbar";
+import { useStickyOffset } from "./useStickyOffset";
 import { s } from "./styles";
 
 interface DiffTabProps {
@@ -28,6 +29,7 @@ export function DiffTab({ prId, pr, reviewRunning }: DiffTabProps) {
   const create = useCreatePrComment(prId);
   const action = useFindingAction();
   const smart = useSmartDiff(prId, pr.head_sha);
+  const stickyTop = useStickyOffset();
 
   const [order, setOrder] = React.useState<DiffOrder>("smart");
   // null = automatic (see showAnnotations); one switch for GitHub threads + finding cards.
@@ -91,7 +93,7 @@ export function DiffTab({ prId, pr, reviewRunning }: DiffTabProps) {
       {effectiveOrder === "smart" && smart.data ? (
         <div style={s.list}>
           {buildRoleGroups(smart.data, files).map((g) => (
-            <SmartDiffGroup key={g.role} role={g.role} files={g.files} commenting={commenting} findings={findingsApi} />
+            <SmartDiffGroup key={g.role} role={g.role} files={g.files} commenting={commenting} findings={findingsApi} stickyTop={stickyTop} />
           ))}
         </div>
       ) : effectiveOrder === "smart" ? (
