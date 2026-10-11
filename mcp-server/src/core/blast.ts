@@ -26,6 +26,8 @@ export type CompactBlast = {
   hint?: string;
   symbols: CompactBlastSymbol[];
   without_callers: string[];
+  /** Impacted endpoints not attributed to any symbol (the UI shows them as "Other affected endpoints"). */
+  other_endpoints?: string[];
   truncated: boolean;
 };
 
@@ -60,6 +62,10 @@ export function compactBlast(
     without_callers,
     truncated: resp.truncated,
   };
+
+  const attributed = new Set(resp.downstream.flatMap((d) => d.endpoints_affected));
+  const other = resp.impacted_endpoints.filter((e) => !attributed.has(e));
+  if (other.length > 0) out.other_endpoints = other;
 
   if (resp.degraded) {
     out.hint = `Index is ${resp.index_status} (${resp.reason ?? 'unknown'}): this map may be incomplete. A resync can be started from the Blast radius block in the DevDigest UI.`;

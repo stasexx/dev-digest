@@ -94,3 +94,9 @@ test('drops facts_by_file, ranks, commit_sha, limits', () => {
   }
   assert.equal(JSON.stringify(r).includes('"rank"'), false);
 });
+
+test('other_endpoints lists impacted endpoints no symbol claims, like the UI', () => {
+  assert.equal(compactBlast(makeResp(), ctx).other_endpoints, undefined);
+  const out = compactBlast(makeResp({ impacted_endpoints: ['GET /b', 'PUT /b', 'GET /other'] }), ctx);
+  assert.deepEqual(out.other_endpoints, ['GET /other']);
+});

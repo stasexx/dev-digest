@@ -92,7 +92,7 @@ describe("BlastTree", () => {
 
   it("shows the truncation hint from the prop", () => {
     renderTree({ truncatedMax: 7 });
-    expect(screen.getByText(/Showing up to 7 callers per symbol/)).toBeTruthy();
+    expect(screen.getByText(/Showing the top 7 callers across all symbols/)).toBeTruthy();
   });
 
   it("lists symbols without callers and unattributed endpoints", () => {

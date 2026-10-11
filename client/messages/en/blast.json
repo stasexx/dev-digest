@@ -8,7 +8,7 @@
   "noSymbols": "No indexed symbols in the changed files.",
   "withoutCallers": "No callers: {names}",
   "unattributedEndpoints": "Other affected endpoints",
-  "truncated": "Showing up to {max} callers per symbol (index limit).",
+  "truncated": "Showing the top {max} callers across all symbols (index limit) — more exist.",
   "expand": "Expand {symbol}",
   "collapse": "Collapse {symbol}",
   "openOnGithub": "Open {location} on GitHub",
