@@ -49,6 +49,15 @@ Rate limit: `POST /pulls/:id/review` — 120/min globally.
 | `POST` | `/repos/:id/index` | Trigger symbol/import indexing |
 | `GET` | `/repos/:id/map` | Get repo map (for review context) |
 
+### Blast
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/pulls/:id/blast` | Blast radius of a PR (`BlastRadiusResponse`): changed symbols, callers grouped per symbol as `file:line`, affected endpoints/crons. Read-only, served from the prebuilt repo index (no model call, no re-parse); `degraded` + `reason` pass through. 404 for an unknown PR |
+| `GET` | `/pulls/:id/prior-prs` | Prior merged PRs touching the same files (`PriorPrsResponse`), built from the local clone's git history (no GitHub token needed) |
+| `GET` | `/repos/:id/index-state` | Index status of a repo (existing; used by the UI to detect an incomplete index) |
+| `POST` | `/repos/:id/resync` | Fetch latest and re-index incrementally (existing; 202; backs the Resync button) |
+
 ### Settings & Workspace
 
 | Method | Path | Description |
