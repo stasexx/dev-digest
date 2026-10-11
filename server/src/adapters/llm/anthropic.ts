@@ -138,9 +138,20 @@ export class AnthropicProvider implements LLMProvider {
         };
       }
       messages.push({ role: 'assistant', content: res.content });
+      // The API rejects a turn that follows a tool_use without its tool_result,
+      // so the repair hint goes back as the (failed) result of that call.
       messages.push({
         role: 'user',
-        content: parsed.repromptMessage,
+        content: toolUse
+          ? [
+              {
+                type: 'tool_result',
+                tool_use_id: toolUse.id,
+                content: parsed.repromptMessage,
+                is_error: true,
+              },
+            ]
+          : parsed.repromptMessage,
       });
     }
 
