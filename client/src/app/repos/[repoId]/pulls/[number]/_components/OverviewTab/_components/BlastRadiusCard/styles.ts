@@ -36,10 +36,25 @@ export const s = {
   symbolName: { color: "var(--accent-text)", fontWeight: 600 } satisfies CSSProperties,
   muted: { color: "var(--text-muted)", fontSize: 12 } satisfies CSSProperties,
   body: { margin: "6px 0 0 26px", display: "flex", flexDirection: "column", gap: 6 } satisfies CSSProperties,
-  callerRow: { display: "flex", alignItems: "center", gap: 8, fontSize: 13 } satisfies CSSProperties,
-  callerName: { marginLeft: "auto", color: "var(--text-muted)", fontSize: 12 } satisfies CSSProperties,
+  callerRow: {
+    display: "grid",
+    gridTemplateColumns: "14px minmax(0, 1fr) auto",
+    alignItems: "center",
+    gap: 8,
+    fontSize: 13,
+  } satisfies CSSProperties,
+  // One line per caller: long paths and names are cut with an ellipsis (full text in `title`).
+  callerLoc: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } satisfies CSSProperties,
+  callerName: {
+    maxWidth: 220,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    color: "var(--text-muted)",
+    fontSize: 12,
+  } satisfies CSSProperties,
   chipRow: { display: "flex", flexWrap: "wrap", gap: 6 } satisfies CSSProperties,
-  endpointChip: { ...chip, color: "var(--info)", background: "var(--info-bg)" } satisfies CSSProperties,
+  endpointChip: { ...chip, color: "var(--accent-text)", background: "var(--accent-bg)" } satisfies CSSProperties,
   cronChip: { ...chip, color: "var(--warn)", background: "var(--warn-bg)" } satisfies CSSProperties,
   footnote: { margin: "12px 0 0", color: "var(--text-muted)", fontSize: 12 } satisfies CSSProperties,
   notice: {

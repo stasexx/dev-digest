@@ -70,12 +70,14 @@ export function BlastTree({
                     return (
                       <div key={`${c.file}:${c.line}:${c.name}`} style={s.callerRow}>
                         <Icon.CornerDownRight size={13} style={s.statIcon} aria-hidden="true" />
-                        {href ? (
-                          <MonoLink href={href}>{location}</MonoLink>
-                        ) : (
-                          <span className="mono">{location}</span>
-                        )}
-                        <span className="mono" style={s.callerName}>
+                        <span style={s.callerLoc} title={location}>
+                          {href ? (
+                            <MonoLink href={href}>{location}</MonoLink>
+                          ) : (
+                            <span className="mono">{location}</span>
+                          )}
+                        </span>
+                        <span className="mono" style={s.callerName} title={c.name}>
                           {c.name}
                         </span>
                       </div>

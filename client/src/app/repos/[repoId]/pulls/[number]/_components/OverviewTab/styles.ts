@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 export const s = {
   cardsGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(440px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(560px, 1fr))",
     gap: 20,
     alignItems: "start",
   } satisfies CSSProperties,
