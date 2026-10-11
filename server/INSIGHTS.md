@@ -27,12 +27,16 @@ so the next agent/session doesn't relearn it. Append-only — see the
 ## Tool & Library Notes
 
 - **2026-06-14** — New DB columns: edit `db/schema/*.ts`, then `npm run db:generate` (drizzle-kit) auto-generates `00NN_*.sql` (e.g. `0010_solid_baron_zemo.sql` = `ALTER TABLE … ADD COLUMN`). Never hand-write migration SQL; apply with `npm run db:migrate`.
+- **2026-10-11** — `claude-haiku-5-5` rejects every call from the Anthropic adapter (`400 temperature is deprecated for this model`) because `temperature` is always sent. `claude-haiku-4-5-20251001` and `claude-sonnet-4-6` accept it. Evidence: `server/src/adapters/llm/anthropic.ts:72`, `:107`.
+- **2026-10-11** — A review run does not need a GitHub token: the diff comes from `git diff base...head` in the local clone, with `pr_files` patches only as a fallback. A `pull_requests` row plus `git fetch origin <branch>` inside `server/clones/<owner>/<repo>` is enough. Evidence: `server/src/modules/reviews/diff-loader.ts:19-28`.
 
 ## Recurring Errors & Fixes
 
 - **2026-06-14** — Adding a required field to a Zod contract (`RunStats.cost_usd`) breaks the inline fixture in `server/test/contracts.test.ts` (RunTrace parse). Update the `stats: {…}` fixture in the same change. Evidence: `server/test/contracts.test.ts:160`.
 - **2026-09-20** — `pnpm install --frozen-lockfile` fails on `lesson-2-lab/skills`-based branches: `fflate` is declared in `server/package.json` but missing from `pnpm-lock.yaml` (the lab also committed a stray `server/package-lock.json`). Fix: `pnpm install --no-frozen-lockfile` once and commit the lockfile on its own.
 - **2026-09-20** — `listen EADDRINUSE :3001` from `scripts/dev.sh` = an orphaned `tsx watch` API from an earlier stack still serving OLD code (new routes 404). Find it via `ss -ltnp | grep 3001`, check `/proc/<pid>/cwd`, kill, restart `pnpm dev`.
+- **2026-10-11** — Every Anthropic review whose first structured answer failed Zod validation died with `400 … tool_use ids were found without tool_result blocks`: the repair turn pushed a plain-text user message after the forced `tool_use`. Fixed by sending the reprompt as a `tool_result` (`is_error: true`) for that `tool_use.id`. Evidence: `server/src/adapters/llm/anthropic.ts:140`, test `server/test/anthropic-structured.test.ts`.
+- **2026-10-11** — `tsx watch` restarted the API on `git stash` (fix removed) but NOT on the following `git stash pop`, and a plain `touch` did not trigger it either — the server kept running the stashed-out code. After stash/checkout games, restart `pnpm dev` and re-check behaviour before trusting a live result.
 
 ## Session Notes
 
