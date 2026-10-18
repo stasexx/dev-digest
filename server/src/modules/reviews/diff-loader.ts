@@ -31,7 +31,12 @@ export async function loadDiff(
 
 /** Reconstruct a UnifiedDiff from persisted pr_files patches. */
 export async function diffFromPrFiles(repo: ReviewRepository, prId: string): Promise<UnifiedDiff> {
-  const files = await repo.getPrFiles(prId);
+  return diffFromPrFileRows(await repo.getPrFiles(prId));
+}
+
+/** Row-based variant: build the UnifiedDiff from already-read pr_files rows. */
+export function diffFromPrFileRows(rows: { path: string; patch: string | null }[]): UnifiedDiff {
+  const files = rows;
   const parts: string[] = [];
   for (const f of files) {
     if (!f.patch) continue;

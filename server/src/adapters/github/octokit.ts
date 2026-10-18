@@ -1,4 +1,5 @@
 import { Octokit } from 'octokit';
+import { parseLinkedIssueNumber } from './linked-issue.js';
 import type {
   GitHubClient,
   RepoRef,
@@ -125,10 +126,10 @@ export class OctokitGitHubClient implements GitHubClient {
 
   /** linked issue via regex on PR body (#123 / closes #123). */
   private async resolveLinkedIssue(repo: RepoRef, body: string): Promise<IssueMeta | undefined> {
-    const m = body.match(/(?:closes|fixes|resolves)?\s*#(\d+)/i);
-    if (!m?.[1]) return undefined;
+    const n = parseLinkedIssueNumber(body);
+    if (n === null) return undefined;
     try {
-      return await this.getIssue(repo, Number(m[1]));
+      return await this.getIssue(repo, n);
     } catch {
       return undefined;
     }
