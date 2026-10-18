@@ -1,0 +1,9 @@
+src/modules/reviews/repository/run.repo.severity.test.ts(101,12): error TS18048: 'result' is possibly 'undefined'.
+src/modules/reviews/repository/run.repo.severity.test.ts(102,12): error TS18048: 'result' is possibly 'undefined'.
+src/modules/reviews/repository/run.repo.severity.test.ts(103,12): error TS18048: 'result' is possibly 'undefined'.
+src/modules/reviews/repository/run.repo.severity.test.ts(141,12): error TS18048: 'result' is possibly 'undefined'.
+src/modules/reviews/repository/run.repo.severity.test.ts(142,12): error TS18048: 'result' is possibly 'undefined'.
+src/modules/reviews/repository/run.repo.severity.test.ts(143,12): error TS18048: 'result' is possibly 'undefined'.
+src/modules/reviews/repository/run.repo.severity.test.ts(88,12): error TS18048: 'result' is possibly 'undefined'.
+src/modules/reviews/repository/run.repo.severity.test.ts(89,12): error TS18048: 'result' is possibly 'undefined'.
+src/modules/reviews/repository/run.repo.severity.test.ts(90,12): error TS18048: 'result' is possibly 'undefined'.
