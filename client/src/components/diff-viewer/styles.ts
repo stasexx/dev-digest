@@ -90,3 +90,50 @@ export function lineSignFor(kind: Line["kind"]): CSSProperties {
     flexShrink: 0,
   };
 }
+
+/** Styles for review-finding marks (bar, label, dot, unanchored block). */
+export const fs = {
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: "50%",
+    background: "var(--crit)",
+    flexShrink: 0,
+    display: "inline-block",
+  } satisfies CSSProperties,
+  unanchoredWrap: {
+    borderTop: "1px solid var(--border)",
+    margin: "4px 14px 4px 58px",
+    paddingTop: 10,
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  } satisfies CSSProperties,
+  unanchoredTitle: {
+    fontSize: 11,
+    fontWeight: 700,
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    color: "var(--text-muted)",
+  } satisfies CSSProperties,
+} as const;
+
+/** Left bar (inset 3px box-shadow) in the finding's severity colour. */
+export function barFor(color: string): CSSProperties {
+  return { boxShadow: `inset 3px 0 0 ${color}` };
+}
+
+/** Right-aligned severity label (icon + word) on a finding line. */
+export function labelFor(color: string): CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    alignSelf: "center",
+    flexShrink: 0,
+    padding: "0 10px",
+    fontSize: 11.5,
+    fontWeight: 600,
+    color,
+  };
+}

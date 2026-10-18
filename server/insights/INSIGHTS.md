@@ -13,6 +13,8 @@ See also: `insights/gotchas.md` for known quirks at project start.
 
 2026-06-18 — Unit-testing a drizzle repo function with two sequential queries: mock `db.select()` with a call counter; each call returns a fresh chain where `.orderBy()` (first query) or `.groupBy()` (second query) resolves with the appropriate fixture data. All intermediate chain methods (`from`, `leftJoin`, `innerJoin`, `where`) return `this`. Pattern validated for `listRunsForPull`. ref: server/src/modules/reviews/repository/run.repo.severity.test.ts:53
 
+2026-10-11 — To prove a service path never touches the LLM/GitHub/git, hand it a `Proxy` container that records and throws on any property other than the one it may use (`reviewRepo`), then assert the recorded list is empty. Lighter than `ContainerOverrides` mocks and fails loudly on the first forbidden access. ref: server/src/modules/smart-diff/service.test.ts:26
+
 ## What Doesn't Work
 
 2026-06-22 — Refactoring an inline SSRF guard into a container-wired adapter: the old inline helper (`safeFetchSkillUrl` in skills/routes.ts) had identical logic but was unreachable from other modules. Lifting it to `WebFetchAdapter` + `WebFetchClient` port lets the intent module reuse it via `container.webFetch.fetch()` without re-implementing SSRF guards. The route refactor must remove the unused import (`ValidationError`) or typecheck warns. ref: server/src/modules/skills/routes.ts:1
@@ -42,6 +44,7 @@ See also: `insights/gotchas.md` for known quirks at project start.
 2026-06-17 — `nullish()` (not `nullable()` or `optional()`) is the convention for optional DTO fields in `platform.ts`. Use `z.number().nullish()` for fields that may be absent from older DB rows — accepts both `null` and `undefined` from Drizzle. ref: server/src/vendor/shared/contracts/platform.ts:157
 
 2026-10-11 — The repo-intel facade does NOT drop callers that live in the symbol's own declaring file (no such filter in its SQL), so `toBlastRadius` filters them before grouping flat `callers` by `viaSymbol` into the `BlastRadius` contract. ref: server/src/modules/blast/helpers.ts:70
+2026-10-11 — Smart Diff role rules are ONE ordered array (`boilerplate → tests → wiring → docs`, `core` = fallback); first match wins, so precedence is data, not `if` order. `dist/`, `build/`, `e2e/` are anchored at the repo root, `.claude/**` matches at any depth, only `index.ts|js` count as barrels, `package.json → wiring` — every such decision is a row in the table test. ref: server/src/modules/smart-diff/constants.ts:22
 
 ## Tool & Library Notes
 
@@ -50,6 +53,9 @@ See also: `insights/gotchas.md` for known quirks at project start.
 2026-06-17 — Drizzle `selectDistinctOn([col])` requires the first `orderBy()` column to match the DISTINCT ON column. For "latest row per group": `.selectDistinctOn([t.agentRuns.prId], {...}).orderBy(t.agentRuns.prId, desc(t.agentRuns.ranAt))`. Without the matching prId in orderBy, Postgres throws "SELECT DISTINCT ON expressions must match initial ORDER BY expressions". ref: server/src/modules/pulls/routes.ts:1
 
 2026-10-11 — `tsx watch` stopped picking up a NEW module (new files + `modules/index.ts` edit): new routes stayed 404 until `pnpm dev` was restarted. Verify fresh routes on a second instance (`API_PORT=3012 pnpm dev`) or restart before trusting a 404. ref: server/src/modules/index.ts:1
+2026-10-11 — pnpm 9 cannot install this branch: `server/` and `client/` carry a `pnpm-workspace.yaml` holding only `allowBuilds:` (a pnpm 10 setting), and pnpm 9 reads the file as a workspace manifest → `ERR packages field missing or empty`. Use pnpm ≥10 (`npx -y pnpm@10 install --frozen-lockfile`). ref: server/pnpm-workspace.yaml:1
+
+2026-10-11 — Branches from different lab lineages carry different migration sets (this lab ends at `0010_skill_threat_level`, the HW-2 branch at `0012_flimsy_leader`), so they cannot share one DB. Create a second database in the same container and start the API with `DATABASE_URL=postgres://devdigest:devdigest@localhost:5432/<db>`: `dotenv/config` never overrides a variable already set in the environment. ref: server/src/platform/config.ts:1
 
 ## Recurring Errors & Fixes
 
@@ -72,6 +78,8 @@ See also: `insights/gotchas.md` for known quirks at project start.
 2026-06-22 — `IntentService` exposes three public methods: `getOrCompute` (returns stored intent without LLM if `repo.getIntent` resolves), `recompute` (always calls the LLM + upserts), and `computeForRun` (accepts a pre-loaded `UnifiedDiff` so T6 avoids double diff-loading; returns raw `Intent` not `PrIntentRecord`). The `compute` private method is the single orchestration path shared by all three. ref: server/src/modules/intent/service.ts:44
 
 2026-06-22 — Application-layer services (e.g. `IntentService`, `ConventionsService`) have no per-request logger — the container exposes no logger getter. Only `RunLogger` exists as a per-run logger (constructed in `run-executor.ts`). Services that accept an optional `Logger` (classifier, references) should receive `undefined` unless the caller is in a run context and can pass a `RunLogger`. ref: server/src/modules/intent/service.ts:29
+
+2026-10-11 — Anthropic reviews died with `400 … tool_use ids were found without tool_result blocks` whenever the first structured answer failed Zod validation: the repair turn was a plain user message after the forced `tool_use`. Send it as a `tool_result` (`is_error: true`) for that `tool_use.id`. ref: server/src/adapters/llm/anthropic.ts:141
 
 ## Session Notes
 
@@ -98,6 +106,7 @@ See also: `insights/gotchas.md` for known quirks at project start.
 2026-06-17 — Run Cost Badge: added `last_run_cost_usd` to PR list response. Used `selectDistinctOn` subquery to get most recent agent run cost per PR in a single query (no N+1). No migration needed — `agent_runs.cost_usd` column already existed in the schema. Files: server/src/modules/pulls/routes.ts, server/src/vendor/shared/contracts/platform.ts.
 
 2026-10-11 — HW-4 Blast Radius (planner → 6 implementers → architecture-reviewer ∥ plan-verifier) → `modules/blast/` with `GET /pulls/:id/blast` (one facade call, mapper to the contract, degraded/reason passthrough, LLM-free summary) and `GET /pulls/:id/prior-prs` (local git). Files: server/src/modules/blast/*, server/test/blast-*.test.ts, server/test/blast.it.test.ts, server/src/vendor/shared/contracts/blast.ts.
+2026-10-11 — HW-3 Smart Diff (planner → 4 implementers → architecture-reviewer ∥ plan-verifier) → new LLM-free module `modules/smart-diff/` (classifier table-tested first, `GET /pulls/:id/smart-diff` with a zod response schema, latest-review-per-agent rule), `SmartDiffRole` widened to 5 roles in both `brief.ts` copies. Files: server/src/modules/smart-diff/*, server/test/smart-diff.it.test.ts, server/src/vendor/shared/contracts/brief.ts.
 
 ## Open Questions
 

@@ -31,6 +31,7 @@ export function FindingCard({
   pending,
   repoFullName,
   headSha,
+  singleLineWhenCollapsed,
 }: {
   f: FindingRecord;
   focused?: boolean;
@@ -39,6 +40,8 @@ export function FindingCard({
   pending?: boolean;
   repoFullName?: string | null;
   headSha?: string | null;
+  /** Collapsed state shows only one row (badge, title, category) — used inline in the diff. */
+  singleLineWhenCollapsed?: boolean;
 }) {
   const t = useTranslations("prReview");
   const [expanded, setExpanded] = React.useState(defaultExpanded ?? false);
@@ -50,26 +53,29 @@ export function FindingCard({
   const accepted = !!f.accepted_at;
   const dismissed = !!f.dismissed_at;
   const muted = accepted || dismissed;
+  const oneLine = !!singleLineWhenCollapsed && !expanded;
 
   return (
     <div data-finding-id={f.id} style={s.card(!!focused, sevColor, muted)}>
-      <div onClick={() => setExpanded((e) => !e)} style={s.header}>
+      <div onClick={() => setExpanded((e) => !e)} style={oneLine ? s.headerSingle : s.header}>
         <div style={s.badgeWrap}>
           <SeverityBadge severity={f.severity as Severity} compact />
         </div>
         <div style={s.headerMain}>
-          <div style={s.titleRow}>
-            <span style={s.title(muted, dismissed)}>{f.title}</span>
+          <div style={oneLine ? s.titleRowSingle : s.titleRow}>
+            <span style={oneLine ? s.titleSingle(muted, dismissed) : s.title(muted, dismissed)}>{f.title}</span>
             <CategoryTag category={f.category as Category} />
             {accepted && <span style={s.acceptedTag}>{t("finding.accepted")}</span>}
             {dismissed && <span style={s.dismissedTag}>{t("finding.dismissed")}</span>}
           </div>
-          <div style={s.metaRow}>
-            <MonoLink href={fileHref}>
-              {f.file}:{lineLabel(f)}
-            </MonoLink>
-            <ConfidenceNum value={f.confidence} />
-          </div>
+          {!oneLine && (
+            <div style={s.metaRow}>
+              <MonoLink href={fileHref}>
+                {f.file}:{lineLabel(f)}
+              </MonoLink>
+              <ConfidenceNum value={f.confidence} />
+            </div>
+          )}
         </div>
         <Icon.ChevronDown size={16} style={s.chevron(expanded)} />
       </div>

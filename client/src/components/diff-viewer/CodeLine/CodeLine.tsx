@@ -3,23 +3,36 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
+import { Icon, SEV } from "@devdigest/ui";
+import type { FindingRecord } from "@devdigest/shared";
 import { commentTargetFor, type CommentThread, type DiffCommentApi, cs } from "../comments";
 import { type Line } from "../helpers";
-import { s, lineRowFor, lineSignFor } from "../styles";
+import { topSeverity, type DiffFindingsApi } from "../findings";
+import { s, lineRowFor, lineSignFor, barFor, labelFor } from "../styles";
 import { CommentThreadView } from "../CommentThreadView";
 import { InlineComposer } from "../InlineComposer";
+import { LineFindings } from "../LineFindings";
+
+const NO_FINDINGS: FindingRecord[] = [];
 
 export function CodeLine({
   ln,
   path,
   threads,
   commenting,
+  findings = NO_FINDINGS,
+  findingsApi,
 }: {
   ln: Line;
   path: string;
   threads: CommentThread[];
   commenting?: DiffCommentApi;
+  /** Review findings anchored to this line (bar + label always; cards per findingsApi.show). */
+  findings?: FindingRecord[];
+  findingsApi?: DiffFindingsApi;
 }) {
+  const t = useTranslations("shell");
   const [hover, setHover] = React.useState(false);
   const [composing, setComposing] = React.useState(false);
 
@@ -34,6 +47,8 @@ export function CodeLine({
   const sign = ln.kind === "add" ? "+" : ln.kind === "del" ? "−" : "";
   const target = commenting?.canComment ? commentTargetFor(ln) : null;
   const showAdd = hover && !!target && !composing;
+  const top = findings.length > 0 ? SEV[topSeverity(findings)] : null;
+  const SevIcon = top ? Icon[top.icon] : null;
 
   return (
     <div
@@ -41,7 +56,7 @@ export function CodeLine({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
-      <div style={lineRowFor(ln.kind)}>
+      <div style={top ? { ...lineRowFor(ln.kind), ...barFor(top.c) } : lineRowFor(ln.kind)}>
         <span className="mono tnum" style={{ ...s.lineNo, position: "relative" }}>
           {showAdd && target && (
             <button
@@ -62,6 +77,12 @@ export function CodeLine({
         <span className="mono" style={s.lineText}>
           {ln.text || " "}
         </span>
+        {top && SevIcon && (
+          <span style={labelFor(top.c)}>
+            <SevIcon size={12} />
+            {t(`diffViewer.findingLabel.${topSeverity(findings)}`)}
+          </span>
+        )}
       </div>
 
       {commenting &&
@@ -69,6 +90,10 @@ export function CodeLine({
         threads.map((th) => (
           <CommentThreadView key={th.rootId} thread={th} commenting={commenting} path={path} />
         ))}
+
+      {findingsApi && findingsApi.show && (
+        <LineFindings findings={findings} api={findingsApi} />
+      )}
 
       {commenting && composing && target && (
         <InlineComposer
