@@ -7,24 +7,49 @@ import { useTranslations } from "next-intl";
 import { Icon, Badge, CircularScore } from "@devdigest/ui";
 import type { Verdict } from "@devdigest/shared";
 import { VERDICT_META } from "./constants";
+import type { VerdictBannerLabels } from "./types";
 import { s } from "./styles";
 
-export function VerdictBanner({
-  verdict,
-  summary,
-  score,
-  findingsCount,
-  blockers,
-  agentName,
-}: {
+type BannerProps = {
   verdict: Verdict;
   summary: string | null;
   score: number | null;
   findingsCount: number;
   blockers: number;
   agentName?: string | null;
-}) {
+};
+
+/** `labels` given: render them without touching the `prReview` namespace.
+    Absent: resolve today's strings from `prReview`. */
+export function VerdictBanner({ labels, ...props }: BannerProps & { labels?: VerdictBannerLabels }) {
+  if (labels) return <BannerView {...props} labels={labels} />;
+  return <PrReviewBanner {...props} />;
+}
+
+function PrReviewBanner(props: BannerProps) {
   const t = useTranslations("prReview");
+  const labels: VerdictBannerLabels = {
+    verdict: {
+      request_changes: t("verdict.requestChanges"),
+      approve: t("verdict.approve"),
+      comment: t("verdict.comment"),
+    },
+    findingsCount: t("verdict.findingsCount", { count: props.findingsCount }),
+    blockers: t("verdict.blockers", { count: props.blockers }),
+    prScore: t("verdict.prScore"),
+  };
+  return <BannerView {...props} labels={labels} />;
+}
+
+function BannerView({
+  verdict,
+  summary,
+  score,
+  findingsCount: _fc,
+  blockers,
+  agentName,
+  labels,
+}: BannerProps & { labels: VerdictBannerLabels }) {
   const m = VERDICT_META[verdict] ?? VERDICT_META.comment;
   const VIcon = Icon[m.icon];
   return (
@@ -34,10 +59,10 @@ export function VerdictBanner({
       </div>
       <div style={s.main}>
         <div style={s.titleRow}>
-          <span style={s.label(m.c)}>{t(`verdict.${m.labelKey}`)}</span>
+          <span style={s.label(m.c)}>{labels.verdict[verdict] ?? labels.verdict.comment}</span>
           <Badge color="var(--text-secondary)">
-            {t("verdict.findingsCount", { count: findingsCount })}
-            {blockers > 0 ? t("verdict.blockers", { count: blockers }) : ""}
+            {labels.findingsCount}
+            {blockers > 0 ? labels.blockers : ""}
           </Badge>
           {agentName && (
             <Badge color="var(--accent-text)" bg="var(--accent-bg)" icon="Cpu">
@@ -50,7 +75,7 @@ export function VerdictBanner({
       {score != null && (
         <div style={s.scoreCol}>
           <CircularScore score={score} size={52} stroke={5} />
-          <span style={s.scoreLabel}>{t("verdict.prScore")}</span>
+          <span style={s.scoreLabel}>{labels.prScore}</span>
         </div>
       )}
     </div>
