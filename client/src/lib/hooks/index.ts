@@ -15,3 +15,4 @@ export * from "./intent";
 export * from "./blast";
 export * from "./smart-diff";
 export * from "./projectContext";
+export * from "./brief";

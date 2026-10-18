@@ -2,18 +2,87 @@
   "block": {
     "intent": "Intent",
     "blast": "Blast radius",
-    "risks": "Risks",
-    "history": "PR history"
+    "risks": "Risk areas",
+    "history": "PR history",
+    "reviewFocus": "Review focus — read these first"
   },
   "noRisks": "No notable risks flagged.",
   "noHistory": "No prior PRs overlap these files.",
   "overlap": "{count} overlap",
   "unavailable": "Brief not available yet.",
-  "unavailableHint": "Run a review or open the PR to compute it.",
+  "unavailableHint": "Generate a brief to see what this PR does, its risk areas and where to start reading.",
   "why": {
     "title": "git-why",
     "blame": "blame",
     "noHistory": "No history available for this line.",
     "noCommits": "No commits found for this line."
+  },
+  "title": "PR Brief",
+  "generate": "Generate brief",
+  "regenerate": "Regenerate",
+  "refresh": "Refresh brief",
+  "retry": "Retry",
+  "generating": "Generating brief…",
+  "noReviewFocus": "Nothing specific to read first.",
+  "severity": {
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low"
+  },
+  "risk": {
+    "expand": "Show details",
+    "collapse": "Hide details",
+    "openFile": "Open in Files changed"
+  },
+  "focus": {
+    "openFile": "Open in Files changed"
+  },
+  "stale": "This brief was generated for commit {briefSha}; the PR is now at {currentSha}. Refresh to update it.",
+  "missing": {
+    "title": "Inputs not available",
+    "input": {
+      "specs": "Specs",
+      "linked_issue": "Linked issue"
+    },
+    "reasons": {
+      "not_computed": "Not computed yet",
+      "lookup_failed": "Lookup failed",
+      "flag_off": "Disabled in settings",
+      "index_failed": "Repository index failed",
+      "index_partial": "Repository index is incomplete",
+      "repo_too_large": "Repository too large to analyze",
+      "no_data": "No data available",
+      "none_attached": "None attached",
+      "clone_unavailable": "Repository clone unavailable",
+      "all_unreadable": "No file could be read",
+      "github_unavailable": "GitHub unavailable",
+      "fetch_failed": "Fetch failed",
+      "unknown": "Unknown reason"
+    }
+  },
+  "meta": {
+    "model": "Model",
+    "generatedAt": "Generated",
+    "tokens": "Tokens",
+    "cost": "Cost"
+  },
+  "errors": {
+    "modelNotConfigured": "The Risk Brief model's provider ({provider}) is not configured. Add its API key or pick another model under Settings → Risk Brief.",
+    "modelFailed": "The Risk Brief model failed to produce a valid brief. Try again.",
+    "inProgress": "A brief is already being generated for this PR.",
+    "rateLimited": "Too many requests. Wait a moment and try again.",
+    "overBudget": "This PR is too large to summarize within the input budget.",
+    "generic": "Could not generate the brief. Try again."
+  },
+  "verdict": {
+    "requestChanges": "Request changes",
+    "approve": "Approve",
+    "comment": "Comment",
+    "findingsCount": "{count} findings",
+    "blockers": " · {count} blockers",
+    "prScore": "PR SCORE"
+  },
+  "nav": {
+    "notInDiff": "File not in this PR's diff"
   }
 }
