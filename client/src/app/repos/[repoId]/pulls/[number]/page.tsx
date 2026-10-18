@@ -21,6 +21,7 @@ import { usePrReviews, useCancelRun, usePrActiveRuns, usePrRuns, useDeleteRun, u
 import { useActiveRepo, useRepoNotFound } from "../../../../../lib/contexts/repoContext";
 import { ApiError } from "../../../../../lib/api";
 import { githubPrUrl } from "../../../../../lib/utils/githubUrls";
+import { buildDiffQuery } from "../../../../../lib/utils/diffLink";
 import type { FindingRecord } from "@devdigest/shared";
 
 export default function PRDetailPage() {
@@ -67,7 +68,17 @@ export default function PRDetailPage() {
     else sp.set(key, val);
     router.replace(`/repos/${repoId}/pulls/${number}${sp.toString() ? `?${sp.toString()}` : ""}`);
   };
-  const setTab = (t: string) => setParam("tab", t);
+  // A manual tab switch must not re-trigger the file/line deep link.
+  const setTab = (t: string) => {
+    const sp = new URLSearchParams(search.toString());
+    sp.set("tab", t);
+    sp.delete("file");
+    sp.delete("line");
+    router.replace(`/repos/${repoId}/pulls/${number}?${sp.toString()}`);
+  };
+  // Overview -> Files changed deep link; push so Back returns to Overview.
+  const openInDiff = (file: string, line: number | null) =>
+    router.push(`/repos/${repoId}/pulls/${number}?${buildDiffQuery(search, file, line)}`);
 
   // Reviews come newest-first; each is its own run (grouped into accordions).
   const runs = reviews ?? [];
@@ -136,7 +147,7 @@ export default function PRDetailPage() {
       />
 
       <div style={{ padding: "24px 32px 44px", display: "flex", flexDirection: "column", gap: 24, maxWidth: 1080, margin: "0 auto" }}>
-        {tab === "overview" && <OverviewTab prBody={pr.body} prId={prId} repoId={repoId} repoFullName={repoFullName} headSha={pr.head_sha} />}
+        {tab === "overview" && <OverviewTab prBody={pr.body} prId={prId} repoId={repoId} repoFullName={repoFullName} headSha={pr.head_sha} changedFiles={pr.files.map((f) => f.path)} onOpenFile={openInDiff} />}
 
         {tab === "findings" && (
           <FindingsTab
@@ -164,7 +175,7 @@ export default function PRDetailPage() {
         )}
 
         {tab === "diff" && (
-          <DiffTab prId={prId} pr={pr} reviewRunning={reviewRunning} />
+          <DiffTab prId={prId} pr={pr} reviewRunning={reviewRunning} targetFile={search.get("file")} targetLine={search.get("line")} />
         )}
       </div>
 
