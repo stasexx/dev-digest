@@ -1,4 +1,4 @@
-/* PrBriefBlock — "PR Brief" container: summary, Risk areas, Review focus, notices.
+/* PrBriefBlock — "PR Brief" container: summary, the risk section, the review-focus section, notices.
    Intent and Blast radius are supplied as slots by the Overview tab (always shown). */
 "use client";
 
