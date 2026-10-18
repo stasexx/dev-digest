@@ -59,6 +59,23 @@ Rate limit: `POST /pulls/:id/review` — 120/min globally.
 | `GET` | `/repos/:id/index-state` | Index status of a repo (existing; used by the UI to detect an incomplete index) |
 | `POST` | `/repos/:id/resync` | Fetch latest and re-index incrementally (existing; 202; backs the Resync button) |
 
+### Brief
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/pulls/:id/brief` | Stored PR Why + Risk Brief: `{ brief: PrBriefRecord \| null, stale, current_head_sha, generating }`. `stale` = the brief's `head_sha` differs from the PR's current head. **GET never calls a model, GitHub or git** (database only). A malformed stored row is served as `brief: null`. 404 for an unknown PR |
+| `POST` | `/pulls/:id/brief` | (Re)generate the brief with exactly one structured model call (model from the `risk_brief` setting) and overwrite the stored row. Returns the same shape as GET with `generating: false`. Rate limited to 10/min (429) |
+
+Brief error codes (envelope `{ error: { code, message, details? } }`; never carries raw model output, prompt or spec text):
+
+| Condition | HTTP | `code` |
+|-----------|------|--------|
+| PR not in workspace | 404 | `not_found` |
+| Generation already running for the PR | 409 | `brief_generation_in_progress` |
+| Fixed content alone exceeds the 8,000-token input budget | 422 | `brief_input_over_budget` |
+| Risk Brief provider has no API key | 400 | `brief_model_not_configured` (`details: { setting: 'risk_brief', provider }`) |
+| Provider error / timeout / invalid output after repairs | 502 | `brief_model_failed` (no `details`) |
+
 ### Settings & Workspace
 
 | Method | Path | Description |

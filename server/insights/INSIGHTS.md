@@ -64,6 +64,10 @@ See also: `insights/gotchas.md` for known quirks at project start.
 2026-10-11 — The repo-intel facade does NOT drop callers that live in the symbol's own declaring file (no such filter in its SQL), so `toBlastRadius` filters them before grouping flat `callers` by `viaSymbol` into the `BlastRadius` contract. ref: server/src/modules/blast/helpers.ts:70
 2026-10-11 — Smart Diff role rules are ONE ordered array (`boilerplate → tests → wiring → docs`, `core` = fallback); first match wins, so precedence is data, not `if` order. `dist/`, `build/`, `e2e/` are anchored at the repo root, `.claude/**` matches at any depth, only `index.ts|js` count as barrels, `package.json → wiring` — every such decision is a row in the table test. ref: server/src/modules/smart-diff/constants.ts:22
 
+2026-10-18 — Brief generation wraps every provider failure in `new AppError('brief_model_failed', …, 502)` WITHOUT details: the Anthropic adapter throws `ExternalServiceError(…, { raw })` and the global error handler serialises `AppError.details`, so rethrowing it as-is would put raw model output in the response body. Log only `err.message`. ref: server/src/modules/brief/service.ts:213
+
+2026-10-18 — `BRIEF_MAX_RETRIES = 2` means 3 attempts in total, and the 8,000-token budget applies to the INITIAL request only: repair re-prompts append the invalid output + a hint inside the one `completeStructured` call, so provider `tokens_in` (summed over attempts) can legitimately exceed 8,000. Store `attempts`/`tokens_in` beside `input_tokens_estimate` instead of asserting on them. ref: server/src/modules/brief/constants.ts:53
+
 ## Tool & Library Notes
 
 2026-06-30 — When `meta/0010_snapshot.json` is absent, `pnpm db:generate` diffs against snapshot 0009 and re-emits every column added by migration 0010 (e.g. `threat_level`) alongside the genuinely new columns. Fix: manually remove the already-applied column lines from the generated SQL before committing. The `meta/_journal.json` and the new snapshot are still correct — only the `.sql` file needs the spurious lines stripped. ref: server/src/db/migrations/0011_loud_banshee.sql:1
@@ -76,6 +80,12 @@ See also: `insights/gotchas.md` for known quirks at project start.
 2026-10-11 — pnpm 9 cannot install this branch: `server/` and `client/` carry a `pnpm-workspace.yaml` holding only `allowBuilds:` (a pnpm 10 setting), and pnpm 9 reads the file as a workspace manifest → `ERR packages field missing or empty`. Use pnpm ≥10 (`npx -y pnpm@10 install --frozen-lockfile`). ref: server/pnpm-workspace.yaml:1
 
 2026-10-11 — Branches from different lab lineages carry different migration sets (this lab ends at `0010_skill_threat_level`, the HW-2 branch at `0012_flimsy_leader`), so they cannot share one DB. Create a second database in the same container and start the API with `DATABASE_URL=postgres://devdigest:devdigest@localhost:5432/<db>`: `dotenv/config` never overrides a variable already set in the environment. ref: server/src/platform/config.ts:1
+
+2026-10-18 — `fs.readFile(p, 'utf8')` never fails on invalid UTF-8 (yields U+FFFD), and `readDocument` throws the same `ValidationError` for traversal and for a missing file; the brief therefore treats a spec containing U+FFFD as unreadable and one catch records both cases as `missingPaths`. ref: server/src/modules/brief/inputs.ts:247
+
+2026-10-18 — `AgentRow.createdAt` is a `Date` and `agentsRepo.listEnabled` has no ORDER BY, so the createdAt-then-id sort in `orderAttachedSpecPaths` is load-bearing for a deterministic spec order (and for the prompt/cache-stable output). ref: server/src/modules/brief/inputs.ts:57
+
+2026-10-18 — Live Risk Brief on `claude-sonnet-4-6` records `cost_usd: null`: `adapters/llm/pricing.ts` only prices `claude-3-*-latest` ids, so `estimateCost` returns null for newer Anthropic models; the UI must treat cost as optional. ref: server/src/adapters/llm/pricing.ts:24
 
 ## Recurring Errors & Fixes
 
@@ -159,6 +169,8 @@ See also: `insights/gotchas.md` for known quirks at project start.
 2026-06-30 — T10 (project-context plan): wired spec injection into `run-executor.ts`. Key patterns: (1) `readPaths`/`missing` declared BEFORE the try block so the catch path can write them into the failure trace — if declared inside try, the catch cannot see them. (2) `traceFromBuffer()` is used for the failure trace base but its `specs_read: []` is overridden by spreading `{ ...traceFromBuffer(...), specs_read: readPaths, ...(missing.length > 0 ? { specs_missing: missing } : {}) }`. (3) `AgentRow.attachedDocPaths` is camelCase (from Drizzle `$inferSelect`); the DTO `agent.attached_doc_paths` is snake_case — in run-executor the raw `AgentRow` is used so access is `agent.attachedDocPaths`. (4) `LinkedSkillRow.skill` is `typeof t.skills.$inferSelect` which carries `attachedDocPaths: string[]` directly. (5) `specs_missing` is `.optional()` in RunTrace so omitting it when empty is correct and no TS2741 cascades. Typecheck: 9 pre-existing baseline errors only. All 110 hermetic unit tests pass. Files: server/src/modules/reviews/run-executor.ts.
 
 2026-06-30 — T16 (project-context tests): wrote 7 hermetic test files covering path-guard (AC-30), discovery (AC-1–5), documents (AC-32/33), injection (AC-19/21), agent/skill attach-docs repo (AC-9/10/14/16), and the full injection pipeline with AC-35 grounding companion. Key fix: macOS `realpath` resolves `/var` → `/private/var`; tests that assert `assertInsideClone`/`assertInsideCloneForWrite` return values must call `fs.realpath(root)` on the expected path too. All 167 hermetic unit tests pass; 9 pre-existing typecheck errors in run.repo.severity.test.ts remain. Files: server/src/modules/project-context/path-guard.test.ts, discovery.test.ts, documents.test.ts, injection.test.ts, server/src/modules/agents/attached-docs.test.ts, server/src/modules/skills/attached-docs.test.ts, server/src/modules/reviews/project-context-injection.test.ts.
+
+2026-10-18 — PR Why + Risk Brief server (T1 contracts → T2 prompt/budget/grounding ∥ T3 fact gathering → T4 service/routes) → `modules/brief/` with GET (DB only, SHA-staleness) and POST (one structured call, in-flight lock released before the response, one reassembly on snapshot change, grounded SHA-bound row in `pr_brief`); unit + Testcontainers suites green, live smoke on :3013 OK. Files: server/src/modules/brief/*, server/test/brief-service.test.ts, server/test/brief-routes.test.ts, server/test/brief.it.test.ts, server/docs/api-contracts.md.
 
 ## Open Questions
 
