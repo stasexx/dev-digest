@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { PrDetail, ReviewRecord, SmartDiffResponse, SmartDiffRole } from "@devdigest/shared";
 import prReview from "../../../../../../../../messages/en/prReview.json";
+import brief from "../../../../../../../../messages/en/brief.json";
 import shell from "../../../../../../../../messages/en/shell.json";
 import { DiffTab } from "./DiffTab";
 
@@ -68,23 +69,34 @@ function mockFetch(reviews: ReviewRecord[]) {
   });
 }
 
-function renderTab(reviews: ReviewRecord[], running = false) {
+type Target = { targetFile?: string | null; targetLine?: string | null };
+function tree(qc: QueryClient, running: boolean, target: Target) {
+  return (
+    <QueryClientProvider client={qc}>
+      <NextIntlClientProvider locale="en" messages={{ prReview, shell, brief }}>
+        <DiffTab prId="p1" pr={pr} reviewRunning={running} {...target} />
+      </NextIntlClientProvider>
+    </QueryClientProvider>
+  );
+}
+function renderTab(reviews: ReviewRecord[], running = false, target: Target = {}) {
   mockFetch(reviews);
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
-    <QueryClientProvider client={qc}>
-      <NextIntlClientProvider locale="en" messages={{ prReview, shell }}>
-        <DiffTab prId="p1" pr={pr} reviewRunning={running} />
-      </NextIntlClientProvider>
-    </QueryClientProvider>,
-  );
+  const view = render(tree(qc, running, target));
+  return { ...view, qc, rerenderTarget: (next: Target) => view.rerender(tree(qc, running, next)) };
 }
 
 const groupHeader = (label: string) => screen.getByRole("button", { name: new RegExp(`^${label}`) });
 
+const scrollSpy = vi.fn();
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn());
+  scrollSpy.mockClear();
+  Element.prototype.scrollIntoView = scrollSpy;
 });
+
+/** Elements scrollIntoView was called on, in order. */
+const scrolled = () => scrollSpy.mock.contexts as HTMLElement[];
 
 describe("DiffTab Smart Diff", () => {
   it("(a) shows five groups in role order, each with a file count", async () => {
@@ -179,12 +191,125 @@ describe("DiffTab Smart Diff", () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={qc}>
-        <NextIntlClientProvider locale="en" messages={{ prReview, shell }}>
+        <NextIntlClientProvider locale="en" messages={{ prReview, shell, brief }}>
           <DiffTab prId="p1" pr={pr} reviewRunning={false} />
         </NextIntlClientProvider>
       </QueryClientProvider>,
     );
     expect(await screen.findByText(/Smart order is unavailable/)).toBeInTheDocument();
     expect(screen.getByText("src/a.ts")).toBeInTheDocument();
+  });
+});
+
+describe("DiffTab deep link", () => {
+  it("deep link expands boilerplate group + card and scrolls to the card", async () => {
+    renderTab([], false, { targetFile: "pnpm-lock.yaml" });
+    const card = await waitFor(() => {
+      const el = document.querySelector<HTMLElement>('[data-diff-file="pnpm-lock.yaml"]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    expect(groupHeader("Boilerplate")).toHaveAttribute("aria-expanded", "true");
+    expect(within(card).getByText("ctx 1")).toBeInTheDocument();
+    await waitFor(() => expect(scrolled()).toEqual([card]));
+    expect(card.style.scrollMarginTop).not.toBe("");
+  });
+
+  it("deep link line highlight", async () => {
+    renderTab([], false, { targetFile: "src/a.ts", targetLine: "2" });
+    await waitFor(() => expect(scrollSpy).toHaveBeenCalledTimes(1));
+    const lineEl = document.querySelector<HTMLElement>('[data-diff-file="src/a.ts"] [data-target-line="true"]')!;
+    expect(lineEl).toHaveAttribute("data-new-line", "2");
+    expect(scrolled()[0]).toBe(lineEl);
+    expect(document.querySelectorAll('[data-target-line="true"]')).toHaveLength(1);
+  });
+
+  it("line outside hunks falls back to the card without error text", async () => {
+    renderTab([], false, { targetFile: "src/a.ts", targetLine: "99" });
+    await waitFor(() => expect(scrollSpy).toHaveBeenCalledTimes(1));
+    expect(scrolled()[0]).toHaveAttribute("data-diff-file", "src/a.ts");
+    expect(document.querySelector('[data-target-line="true"]')).toBeNull();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("original order (via smart diff failure) still scrolls", async () => {
+    mockFetch([]);
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input);
+      const ok = !url.includes("/smart-diff");
+      return new Response(JSON.stringify(ok ? [] : { error: "boom" }), { status: ok ? 200 : 500, headers: { "content-type": "application/json" } });
+    });
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(tree(qc, false, { targetFile: "src/b.ts", targetLine: "2" }));
+    expect(await screen.findByText(/Smart order is unavailable/)).toBeInTheDocument();
+    await waitFor(() => expect(scrollSpy).toHaveBeenCalled());
+    const last = scrolled().at(-1)!;
+    expect(last).toHaveAttribute("data-new-line", "2");
+    expect(last.closest("[data-diff-file]")).toHaveAttribute("data-diff-file", "src/b.ts");
+  });
+
+  it("original order selected by the user scrolls to the card", async () => {
+    renderTab([], false, { targetFile: "README.md" });
+    await waitFor(() => expect(scrollSpy).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("button", { name: "Original order" }));
+    await waitFor(() => expect(scrollSpy).toHaveBeenCalledTimes(2));
+    expect(scrolled().at(-1)).toHaveAttribute("data-diff-file", "README.md");
+  });
+
+  it.each(["-3", "abc"])("invalid line=%s -> card-only scroll, no throw", async (line) => {
+    renderTab([], false, { targetFile: "src/a.ts", targetLine: line });
+    await waitFor(() => expect(scrollSpy).toHaveBeenCalledTimes(1));
+    expect(scrolled()[0]).toHaveAttribute("data-diff-file", "src/a.ts");
+    expect(document.querySelector('[data-target-line="true"]')).toBeNull();
+  });
+
+  it("unknown target file shows the notice and never scrolls", async () => {
+    renderTab([], false, { targetFile: "nope/missing.ts" });
+    expect(await screen.findByRole("status")).toHaveTextContent("File not in this PR's diff");
+    await screen.findByText("Core logic");
+    expect(scrollSpy).not.toHaveBeenCalled();
+  });
+
+  it("delayed Smart Diff data: no scroll during skeleton, exactly one after", async () => {
+    mockFetch([]);
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const base = vi.mocked(fetch).getMockImplementation()!;
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      if (String(input).includes("/smart-diff")) await gate;
+      return base(input, init);
+    });
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(tree(qc, false, { targetFile: "pnpm-lock.yaml" }));
+    await new Promise((r) => setTimeout(r, 30));
+    expect(scrollSpy).not.toHaveBeenCalled();
+    release();
+    const card = await waitFor(() => {
+      const el = document.querySelector<HTMLElement>('[data-diff-file="pnpm-lock.yaml"]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    await waitFor(() => expect(scrollSpy).toHaveBeenCalledTimes(1));
+    expect(scrolled()[0]).toBe(card);
+  });
+
+  it("same-tab target change re-arms: group + card of B open, last scroll on B", async () => {
+    const { rerenderTarget } = renderTab([], false, { targetFile: "src/a.ts" });
+    await waitFor(() => expect(scrollSpy).toHaveBeenCalledTimes(1));
+    rerenderTarget({ targetFile: "README.md" });
+    await waitFor(() => expect(scrollSpy).toHaveBeenCalledTimes(2));
+    expect(groupHeader("Docs")).toHaveAttribute("aria-expanded", "true");
+    expect(scrolled()[0]).toHaveAttribute("data-diff-file", "src/a.ts");
+    expect(scrolled()[1]).toHaveAttribute("data-diff-file", "README.md");
+  });
+
+  it("handled once: re-render with the same target and a comments refetch adds no scroll", async () => {
+    const { rerenderTarget, qc } = renderTab([], false, { targetFile: "src/a.ts", targetLine: "2" });
+    await waitFor(() => expect(scrollSpy).toHaveBeenCalledTimes(1));
+    rerenderTarget({ targetFile: "src/a.ts", targetLine: "2" });
+    await qc.invalidateQueries({ queryKey: ["comments"] });
+    await qc.invalidateQueries();
+    await new Promise((r) => setTimeout(r, 30));
+    expect(scrollSpy).toHaveBeenCalledTimes(1);
   });
 });

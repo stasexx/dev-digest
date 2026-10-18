@@ -48,15 +48,42 @@ export function FileCard({
   file,
   commenting,
   findings,
+  isTarget = false,
+  forceOpen = false,
+  highlightLine = null,
+  onTargetReady,
+  scrollMarginTop,
 }: {
   file: PrFile;
   commenting?: DiffCommentApi;
   findings?: DiffFindingsApi;
+  /** This card is the deep-link target: it reports readiness once mounted and open. */
+  isTarget?: boolean;
+  /** Overrides the large-file auto-collapse (and re-opens a collapsed card when it turns true). */
+  forceOpen?: boolean;
+  /** New-side line number to highlight. */
+  highlightLine?: number | null;
+  onTargetReady?: (cardEl: HTMLElement) => void;
+  /** Keeps the card clear of sticky headers when scrolled into view. */
+  scrollMarginTop?: number;
 }) {
   const t = useTranslations("shell");
   const [open, setOpen] = React.useState(
-    (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES
+    forceOpen || (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES
   );
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const readyRef = React.useRef(onTargetReady);
+  readyRef.current = onTargetReady;
+
+  React.useEffect(() => {
+    if (forceOpen) setOpen(true);
+  }, [forceOpen]);
+
+  // Runs after the commit that opened the card, so its lines are already in the DOM.
+  React.useEffect(() => {
+    if (!isTarget || !open || !rootRef.current) return;
+    readyRef.current?.(rootRef.current);
+  }, [isTarget, open, highlightLine]);
   const lines = React.useMemo(() => parsePatch(file.patch), [file.patch]);
 
   // Keys of every rendered line; shared by comment and finding anchoring.
@@ -88,7 +115,11 @@ export function FileCard({
     : 0;
 
   return (
-    <div style={s.fileCard}>
+    <div
+      ref={rootRef}
+      data-diff-file={file.path}
+      style={scrollMarginTop ? { ...s.fileCard, scrollMarginTop } : s.fileCard}
+    >
       <div onClick={() => setOpen((o) => !o)} style={s.fileHeader}>
         <Icon.ChevronRight size={13} style={chevronFor(open)} />
         <Icon.FileText size={14} style={s.fileIcon} />
@@ -130,6 +161,7 @@ export function FileCard({
                 commenting={commenting}
                 findings={findingsForLine(ln, matchedFindings)}
                 findingsApi={findings}
+                highlighted={highlightLine != null && ln.newNo === highlightLine}
               />
             ))
           )}

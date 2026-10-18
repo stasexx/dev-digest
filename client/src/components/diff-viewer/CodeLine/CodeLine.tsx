@@ -9,7 +9,7 @@ import type { FindingRecord } from "@devdigest/shared";
 import { commentTargetFor, type CommentThread, type DiffCommentApi, cs } from "../comments";
 import { type Line } from "../helpers";
 import { topSeverity, type DiffFindingsApi } from "../findings";
-import { s, lineRowFor, lineSignFor, barFor, labelFor } from "../styles";
+import { s, lineRowFor, lineSignFor, barFor, labelFor, highlightFor } from "../styles";
 import { CommentThreadView } from "../CommentThreadView";
 import { InlineComposer } from "../InlineComposer";
 import { LineFindings } from "../LineFindings";
@@ -23,6 +23,7 @@ export function CodeLine({
   commenting,
   findings = NO_FINDINGS,
   findingsApi,
+  highlighted = false,
 }: {
   ln: Line;
   path: string;
@@ -31,6 +32,8 @@ export function CodeLine({
   /** Review findings anchored to this line (bar + label always; cards per findingsApi.show). */
   findings?: FindingRecord[];
   findingsApi?: DiffFindingsApi;
+  /** Deep-link target line: accent highlight + data-target-line marker. */
+  highlighted?: boolean;
 }) {
   const t = useTranslations("shell");
   const [hover, setHover] = React.useState(false);
@@ -56,7 +59,15 @@ export function CodeLine({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
-      <div style={top ? { ...lineRowFor(ln.kind), ...barFor(top.c) } : lineRowFor(ln.kind)}>
+      <div
+        data-new-line={ln.newNo ?? undefined}
+        data-target-line={highlighted ? "true" : undefined}
+        style={{
+          ...lineRowFor(ln.kind),
+          ...(top ? barFor(top.c) : null),
+          ...(highlighted ? highlightFor(!top) : null),
+        }}
+      >
         <span className="mono tnum" style={{ ...s.lineNo, position: "relative" }}>
           {showAdd && target && (
             <button

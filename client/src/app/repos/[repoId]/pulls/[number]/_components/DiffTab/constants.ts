@@ -2,6 +2,9 @@ import type { SmartDiffRole } from "@devdigest/shared";
 
 export type DiffOrder = "smart" | "original";
 
+/** Approximate height of the sticky group header; added to scroll-margin of target cards. */
+export const GROUP_HEADER_HEIGHT = 44;
+
 export interface RoleMeta {
   /** i18n keys inside the `prReview` namespace. */
   labelKey: string;

@@ -123,6 +123,13 @@ export function barFor(color: string): CSSProperties {
   return { boxShadow: `inset 3px 0 0 ${color}` };
 }
 
+/** Deep-link target line: accent background, plus an inset bar when no finding bar is drawn. */
+export function highlightFor(withBar: boolean): CSSProperties {
+  return withBar
+    ? { background: "var(--accent-bg)", boxShadow: "inset 3px 0 0 var(--accent)" }
+    : { background: "var(--accent-bg)" };
+}
+
 /** Right-aligned severity label (icon + word) on a finding line. */
 export function labelFor(color: string): CSSProperties {
   return {

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Icon } from "@devdigest/ui";
 import type { PrFile, SmartDiffRole } from "@devdigest/shared";
 import { DiffViewer, type DiffCommentApi, type DiffFindingsApi } from "@/components/diff-viewer";
-import { ROLE_META } from "./constants";
+import { GROUP_HEADER_HEIGHT, ROLE_META } from "./constants";
 import { countFilesWithFindings } from "./helpers";
 import { s } from "./styles";
 
@@ -16,12 +16,20 @@ interface SmartDiffGroupProps {
   findings: DiffFindingsApi;
   /** Offset below the page's sticky PR header. */
   stickyTop?: number;
+  /** Open the group even if it is collapsed by default (deep-link target inside). */
+  forceOpen?: boolean;
+  targetPath?: string | null;
+  targetLine?: number | null;
+  onTargetReady?: (cardEl: HTMLElement) => void;
 }
 
-export function SmartDiffGroup({ role, files, commenting, findings, stickyTop = 0 }: SmartDiffGroupProps) {
+export function SmartDiffGroup({ role, files, commenting, findings, stickyTop = 0, forceOpen = false, targetPath, targetLine, onTargetReady }: SmartDiffGroupProps) {
   const t = useTranslations("prReview");
   const meta = ROLE_META[role];
-  const [open, setOpen] = React.useState(!meta.defaultCollapsed);
+  const [open, setOpen] = React.useState(forceOpen || !meta.defaultCollapsed);
+  React.useEffect(() => {
+    if (forceOpen) setOpen(true);
+  }, [forceOpen]);
   const withFindings = countFilesWithFindings(files, findings.byPath);
   const Chevron = open ? Icon.ChevronDown : Icon.ChevronRight;
 
@@ -44,7 +52,15 @@ export function SmartDiffGroup({ role, files, commenting, findings, stickyTop = 
       </button>
       {open && (
         <div style={s.groupBody}>
-          <DiffViewer files={files} commenting={commenting} findings={findings} />
+          <DiffViewer
+            files={files}
+            commenting={commenting}
+            findings={findings}
+            targetPath={targetPath}
+            targetLine={targetLine}
+            onTargetReady={onTargetReady}
+            scrollMarginTop={stickyTop + GROUP_HEADER_HEIGHT}
+          />
         </div>
       )}
     </section>
