@@ -165,3 +165,22 @@ No file is unowned or double-owned.
 - Implicit concerns unaddressed: none. The mcp-server and `reviewer-core` suites were not run, but nothing in those packages changed.
 
 **REVIEW** — no requirement is missing or partial. The only open items are the T9-only criteria AC-65 to AC-68 and task T9, which need operator sign-off once T9 has run.
+
+---
+
+## T9 operator sign-off (appended after the gate; not part of the verbatim report above)
+
+2026-10-18. These close the items the verifier marked `cannot-verify`. Evidence: `dev-digest-demo/hw5/verify.sh` and its log, and PR #9.
+
+| Item | How T9 verified it | Result |
+|---|---|---|
+| AC-65 | `gh pr view 9 --json body` has a **Cross-model review** section naming Codex CLI 0.153.4 / `gpt-6-astra` (OpenAI family), with all 9 findings and their resolutions. | accepted |
+| AC-66 | `gh api repos/stasexx/dev-digest/pulls/9/files` lists this file. The verbatim report above has 0 `missing` / 0 `partial`. | accepted |
+| AC-67 | PR #9 is open (base `main`, not merged) and has a full description. The demo `hw5-pr-brief-demo.mp4` (2:06) was recorded along the Manual checklist; both model waits are sped up ×4 and marked on screen. The operator attaches the file to the PR's "Demo video" section and to the LMS submission. | accepted |
+| AC-68 | `docs/reports/pr-brief/workflow-retro.md` (`deep` mode, per-agent tokens and list-price cost) and the new `docs/retros/ledger.md` row are in the PR diff. | accepted |
+| T9 | `git log --reverse a1a65cf^..HEAD`: plan `a1a65cf` (spec `e413a8e` before it), then code `e102502…102399a`, then reports `858cd0a`, `ac2e97c`. `pr-self-review` PASS (0 critical). | accepted |
+| Live V-checks | V-EMPTY `None False False 40`. V-GEN: 200, 4 risks, 6 focus items, estimate 3641 ≤ 8000, `attempts` 1, `anthropic/claude-sonnet-4-6`. V-GROUND `GROUNDED OK (15 refs vs 12 allowed)`. V-LOG: 1 `brief: model call` entry (`outcome: "ok"`, all contract fields), then `brief: generated`. V-CACHE: same `generated_at` twice, calls still 1. V-REFRESH: 200, calls 2, one row. V-STALE `True ba9b06f 0000000` (restored). V-CONFLICT `200` + `409`. V-404 GET/POST 404. V-RATE: ten 404, then 429. V-LATENCY p95 0.007 s. | accepted |
+| Manual browser checks | Recorded in the demo, on PR #4. <ul><li>Generate shows the skeleton.</li><li>Banner: Request changes · 5 findings · 1 blocker · PR score 26, with the brief summary and the meta row.</li><li>Risk areas expand to their explanation.</li><li>A Review focus click goes to `?tab=diff&file=server/src/platform/backoff.ts&line=6`; the card opens and line 6 is highlighted (AC-19, AC-20).</li><li>A risk click goes to `server/package.json:30` (AC-22).</li><li>A blast-only `server/src/adapters/llm/openai.ts:97` shows "File not in this PR's diff" (AC-23).</li><li>Reload: browser requests GET ×1 / POST ×0, and the API log model calls stay 6 → 6 (AC-49).</li><li>Refresh adds exactly one call (AC-7, AC-8).</li></ul> | accepted |
+| Not run by the verifier | `mcp-server`: 15/15 pass. `reviewer-core` typecheck exits 0. | accepted |
+
+**Final status:** all 68 ACs are `done`. AC-61 uses the accepted exception E-1, and AC-65 to AC-68 were verified by T9 as recorded above. No requirement is open.
