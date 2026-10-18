@@ -2,7 +2,11 @@ import { z } from 'zod';
 
 /**
  * PR Brief building blocks: Intent, Blast radius, Risks, PR History,
- * Smart Diff. Composed into PrBrief.
+ * Smart Diff, Review focus. Composed into PrBrief.
+ *
+ * PrBrief was reshaped for the PR Why + Risk Brief feature (summary,
+ * nullable intent/blast, review_focus, optional history); BriefModelOutput
+ * is the strict shape the brief LLM call must return.
  */
 
 // ---- Intent ----
@@ -112,11 +116,29 @@ export const SmartDiff = z.object({
 });
 export type SmartDiff = z.infer<typeof SmartDiff>;
 
+// ---- Review focus ----
+export const ReviewFocusItem = z.object({
+  file: z.string().min(1),
+  line: z.number().int().min(1),
+  reason: z.string().min(1),
+});
+export type ReviewFocusItem = z.infer<typeof ReviewFocusItem>;
+
+// ---- Brief model output (caps are applied after grounding, so no .max()) ----
+export const BriefModelOutput = z.object({
+  summary: z.string().min(1),
+  risks: z.array(Risk),
+  review_focus: z.array(ReviewFocusItem),
+});
+export type BriefModelOutput = z.infer<typeof BriefModelOutput>;
+
 // ---- Composed PR Brief (pr_brief.json) ----
 export const PrBrief = z.object({
-  intent: Intent,
-  blast: BlastRadius,
+  summary: z.string().min(1),
+  intent: Intent.nullable(),
+  blast: BlastRadius.nullable(),
   risks: Risks,
-  history: PrHistory,
+  review_focus: z.array(ReviewFocusItem),
+  history: PrHistory.optional(),
 });
 export type PrBrief = z.infer<typeof PrBrief>;
